@@ -1,14 +1,19 @@
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, Platform, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { BrandMark } from '@/components/ui/BrandMark';
 import { DisclaimerBanner } from '@/components/ui/DisclaimerBanner';
+import { LandingPage } from '@/features/marketing/LandingPage';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { colors, space, type } from '@/theme';
 
 export default function IndexScreen() {
   const { t } = useTranslation();
   const { configured, preview, isLoading } = useAuth();
+
+  if (Platform.OS === 'web') {
+    return <LandingPage />;
+  }
 
   if (!configured && !preview && !isLoading) {
     return (

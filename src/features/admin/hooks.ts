@@ -69,6 +69,12 @@ export function useAdminCatalog<T>(table: string, order: string) {
   });
 }
 
+async function invalidateCatalog(client: ReturnType<typeof useQueryClient>, table?: string) {
+  if (table) await client.invalidateQueries({ queryKey: ['admin', 'catalog', table] });
+  else await client.invalidateQueries({ queryKey: ['admin', 'catalog'] });
+  await client.invalidateQueries({ queryKey: ['catalog'] });
+}
+
 export function useAdminCatalogUpdate(table: string, idColumn: string) {
   const client = useQueryClient();
   return useMutation({
@@ -80,8 +86,36 @@ export function useAdminCatalogUpdate(table: string, idColumn: string) {
       if (error) throw error;
     },
     onSuccess: async () => {
-      await client.invalidateQueries({ queryKey: ['admin', 'catalog', table] });
-      await client.invalidateQueries({ queryKey: ['catalog'] });
+      await invalidateCatalog(client, table);
+    },
+  });
+}
+
+export function useAdminCatalogInsert(table: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async (row: Record<string, unknown>) => {
+      const { error } = await getSupabase().from(table as never).insert(row as never);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      await invalidateCatalog(client, table);
+    },
+  });
+}
+
+export function useAdminCatalogDelete(table: string, idColumn: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await getSupabase()
+        .from(table as never)
+        .delete()
+        .eq(idColumn as never, id as never);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      await invalidateCatalog(client, table);
     },
   });
 }

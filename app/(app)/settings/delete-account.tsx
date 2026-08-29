@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { deleteCurrentAccount } from '@/features/account/deleteAccount';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { PRODUCT } from '@/lib/constants';
 import { colors, radius, space, type } from '@/theme';
 
 export default function DeleteAccountScreen() {
@@ -24,7 +25,7 @@ export default function DeleteAccountScreen() {
       await signOut();
       Alert.alert(t('account.deletedTitle'), t('account.deletedBody'));
     } catch {
-      Alert.alert(t('common.error'), t('account.deleteFailed'));
+      Alert.alert(t('common.error'), t('account.deleteFailed', { email: PRODUCT.supportEmail }));
     } finally {
       setBusy(false);
     }

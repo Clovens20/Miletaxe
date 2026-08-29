@@ -30,7 +30,7 @@
     "empty": "Nothing to show yet.",
     "error": "Something went wrong.",
     "crashTitle": "MileTax",
-    "crashBody": "This screen stopped. Your data is not lost. Close the app and open it again. If it continues, email support@miletax.app.",
+    "crashBody": "This screen stopped. Your data is not lost. Close the app and open it again. If it continues, email {{email}}.",
     "offline": "Check your connection, then try again.",
     "photo": "Photo",
     "camera": "Camera",
@@ -75,6 +75,8 @@
     "hasAccount": "Already have an account?",
     "resetSent": "If an account exists, an email was sent.",
     "passwordHint": "At least 8 characters.",
+    "mustChangePassword": "New password required",
+    "mustChangePasswordHint": "Enter the temporary password from your email, then choose a new one.",
     "invalidCredentials": "Incorrect email or password.",
     "emailInUse": "An account already exists with this email.",
     "checkEmail": "Check your email to confirm the account, then sign in.",
@@ -455,7 +457,8 @@
     "assistant": "Records assistant",
     "accountant": "Your accountant",
     "settings": "Settings",
-    "about": "About"
+    "about": "About",
+    "support": "Help and messages"
   },
   "settings": {
     "title": "Settings",
@@ -492,7 +495,7 @@
     "deleteBody": "This cannot be undone. Your vehicles, readings, receipts, expenses, income, packages and photos will be erased. Export your data first if you still need it.",
     "deleteConfirm": "I understand that my financial records and receipt photos will be permanently deleted.",
     "deleteAction": "Delete permanently",
-    "deleteFailed": "Deletion failed. Try again or email support@miletax.app.",
+    "deleteFailed": "Deletion failed. Try again or email {{email}}.",
     "deletedTitle": "Account deleted",
     "deletedBody": "Your account and records have been deleted.",
     "exportBusy": "Preparing your export…",
@@ -505,57 +508,101 @@
     "privacySections": [
       {
         "heading": "Who we are",
-        "body": "MileTax is a mobile app that helps self-employed workers organize records (vehicles, mileage, receipts, expenses, income) for their accountant. It is not tax software and does not replace a professional. Contact: support@miletax.app."
+        "body": "MileTax is a mobile and web app that helps self-employed workers organize records (vehicles, mileage, receipts, expenses, income) for their accountant. Website: https://miletaxe.com. It is not tax software and does not replace a professional. Contact: support@miletaxe.com."
       },
       {
         "heading": "Data we collect",
-        "body": "We collect account email, profile (name, country, province or state, occupation, units), vehicles, odometer readings, meter photos, receipts, amounts and categories you enter, income, preparatory packages, and correction logs you confirm. We do not sell your data."
+        "body": "We collect the account email; profile (name, country, province or state, occupation, units, language); a phone number if you provide one (including for staff accounts); vehicles and, if you enter them, plate, VIN and notes; odometer readings; meter and receipt photos; amounts, tax, merchants, categories, notes and the payment method you record on a receipt; income; the accountant name and email you enter; preparatory packages and files you generate; correction logs you confirm; and, if you use help, support conversation content. Passwords are handled by the authentication provider; we do not store them in plain text. We do not collect GPS location: mileage comes from odometer readings you confirm. We do not collect card numbers: a receipt payment method is a label (cash, card, etc.). We do not sell your data."
       },
       {
         "heading": "Photos and automated reading",
-        "body": "Receipt and odometer photos are stored in a private space tied to your account. Automated reading (on-device or, if configured, an OCR service) suggests fields. These are suggestions: nothing is saved as an expense or reading until you confirm. Do not photograph identity documents."
+        "body": "Receipt and odometer photos are stored in a private space tied to your account. Automated reading (on-device or, if configured, an OCR service) suggests fields. If cloud OCR is enabled, the photo is sent to that processor only to suggest fields; the result is then stored on your account for you to confirm. These are suggestions: nothing is saved as an expense or reading until you confirm. Do not photograph identity documents or other files unrelated to your business activity."
+      },
+      {
+        "heading": "Cookies and audience measurement",
+        "body": "The miletaxe.com website may use cookies and audience-measurement tools to understand traffic and improve the public site. You can manage preferences in your browser settings. The signed-in app uses session cookies or tokens needed to authenticate you and keep you signed in. Audience tools, if present, apply to the public website, not to the contents of your records in the app."
       },
       {
         "heading": "Use and retention",
-        "body": "Data is used to sign you in, organize your records, and build the accountant package. It is kept while the account exists. You can export a JSON copy and delete the account, which removes records and associated photos."
+        "body": "Data is used to sign you in, organize your records, build the accountant package, provide support, and operate the service (security, abuse prevention). It is kept while the account exists. You can export a JSON copy and delete the account in the app, which removes records, associated photos and the account. After deletion, technical copies (backups) may remain for a short operational period, then expire. Records cannot be recovered once deletion is complete."
       },
       {
         "heading": "Sharing",
-        "body": "Your records remain yours. The accountant name and email you enter do not trigger automatic sending. If you share a PDF, you send it. Hosting processors (Supabase) handle data to operate the service, limited to the authenticated account (RLS)."
+        "body": "Your records remain yours. The accountant name and email you enter do not trigger automatic sending. If you share a PDF, you send it. Hosting and authentication processors (Supabase) handle data to operate the service, limited to the authenticated account. Resend is used only to send hire emails to our agents (access link, temporary password); it does not receive client records and is not used for marketing. MileTax staff access a file only when needed for support you requested, for service security, or to comply with the law."
+      },
+      {
+        "heading": "Hosting and transfers",
+        "body": "Infrastructure (hosting, authentication, file storage) and some processors (staff email, OCR if enabled) may be located outside Quebec or Canada. These transfers are made only to provide the service. For details: support@miletaxe.com."
+      },
+      {
+        "heading": "Security",
+        "body": "We use encrypted connections (HTTPS), account authentication and per-user isolation of records. Photos sit in private storage tied to your account. No measure is foolproof: protect your password and account email."
       },
       {
         "heading": "Your rights",
-        "body": "Under PIPEDA and, in Quebec, Law 25, you may access, correct, and obtain a copy of your information, and delete the account in the app. For a written request: support@miletax.app."
+        "body": "Under PIPEDA and, in Quebec, Law 25, you may access, correct and obtain a copy of your information, withdraw consent where the law allows, and delete the account in the app. For a written request: support@miletaxe.com. You may also complain to the Commission d’accès à l’information du Québec or, federally, the Office of the Privacy Commissioner of Canada."
       },
       {
         "heading": "Children",
-        "body": "MileTax is for self-employed workers. It is not intended for children under 13 (or the applicable digital age in your region)."
+        "body": "MileTax is for self-employed workers. The service is not intended for anyone under 18; by creating an account, you confirm you have reached the age of majority in your province or country of residence."
+      },
+      {
+        "heading": "Changes",
+        "body": "We may update this policy. The date at the top of the page is the version in force. The current version is always published at https://miletaxe.com/legal/privacy."
+      },
+      {
+        "heading": "Contact",
+        "body": "For questions about this policy or to exercise your rights, write to support@miletaxe.com (person responsible for the protection of personal information). MileTax — https://miletaxe.com."
       }
     ],
     "termsSections": [
       {
+        "heading": "Acceptance",
+        "body": "By creating an account or using MileTax (mobile app or https://miletaxe.com), you accept these terms. If you do not agree, do not use the service."
+      },
+      {
         "heading": "Service",
-        "body": "MileTax organizes your business records and prepares a package for your accountant. It does not file tax returns, compute tax, or provide legal or tax advice."
+        "body": "MileTax organizes your business records; it does not replace an accountant. It prepares a package for your accountant, but does not file tax returns, compute tax, or provide legal or tax advice."
       },
       {
         "heading": "Accuracy",
-        "body": "You are responsible for the amounts, dates, categories and readings you confirm. Displayed totals are sums of what you entered, not a tax figure. OCR suggestions must be reviewed before saving."
+        "body": "You are responsible for the amounts, dates, categories and readings you confirm. Displayed totals are sums of what you entered, not a tax figure. OCR suggestions must be reviewed before saving. Keep your originals (receipts, logs, statements)."
       },
       {
         "heading": "Account",
-        "body": "You must provide a valid email and protect your password. You may export your data and delete the account at any time. After deletion, records cannot be recovered."
+        "body": "You must provide a valid email, protect your password and be at least 18. You are responsible for activity on your account. You may export your data and delete the account at any time. After deletion, records cannot be recovered."
+      },
+      {
+        "heading": "Availability",
+        "body": "The service is provided “as is”. We may change, interrupt or remove features, including for maintenance or security. We do not guarantee uninterrupted availability or the absence of errors."
       },
       {
         "heading": "Acceptable use",
-        "body": "Do not use the app for illegal purposes, identity fraud, or uploads you have no right to store. Photos must relate to your business activity."
+        "body": "Do not use the app for illegal purposes, identity fraud, or uploads you have no right to store. Photos must relate to your business activity. We may suspend or close an account in case of abuse, a security risk, or a legal requirement."
+      },
+      {
+        "heading": "Intellectual property",
+        "body": "MileTax content, brand and operation belong to us. Documents and data you upload remain yours; you grant us only the right to process them to provide the service."
+      },
+      {
+        "heading": "Third-party services",
+        "body": "The app may rely on app stores, a host (Supabase), staff email (Resend) and, if configured, an OCR service. Those services have their own terms. MileTax does not automatically send your records to your accountant."
       },
       {
         "heading": "Limitation of liability",
-        "body": "To the extent permitted by law, MileTax is not liable for losses related to a tax filing, a penalty, a miscategorized item, or an OCR reading you did not correct. Keep your originals."
+        "body": "To the extent permitted by law, MileTax is not liable for losses related to a tax filing, a penalty, a miscategorized item, or an OCR reading you did not correct. Keep your originals. Nothing in these terms limits mandatory consumer-protection rights."
+      },
+      {
+        "heading": "Changes to the terms",
+        "body": "We may update these terms. The date at the top of the page is the version in force, published at https://miletaxe.com/legal/terms. If you keep using the service after an update, you accept the new version."
       },
       {
         "heading": "Governing law",
         "body": "These terms are governed by the laws of Quebec and Canada. Quebec courts have jurisdiction, subject to mandatory consumer-protection rights."
+      },
+      {
+        "heading": "Contact",
+        "body": "Questions: support@miletaxe.com. MileTax — https://miletaxe.com."
       }
     ]
   },
@@ -597,9 +644,234 @@
     "expenseCategories": "Expense categories",
     "incomeCategories": "Income categories",
     "integrityRules": "Integrity rules",
+    "mileageMethods": "Mileage methods",
+    "mileageTiers": "Rate tiers",
+    "reportSections": "Package sections",
+    "assistantChecks": "Assistant checks",
+    "catalogHint": "Adds, edits and deletes apply in the app right away.",
     "current": "Current year",
+    "code": "Code",
+    "kind": "Kind",
+    "currency": "Currency",
+    "unit": "Unit",
+    "year": "Year",
+    "startsOn": "Starts on",
+    "endsOn": "Ends on",
+    "countryCode": "Country code",
+    "entityType": "Entity type",
+    "severity": "Severity",
+    "methodCode": "Method code",
+    "methodId": "Method ID",
+    "rate": "Rate per unit",
+    "minDistance": "Min distance",
+    "maxDistance": "Max distance",
+    "sortOrder": "Sort order",
+    "confidence": "Confidence",
+    "requiresReceipt": "Receipt required",
+    "requiresVehicle": "Vehicle required",
+    "add": "Add",
+    "deleted": "Deleted.",
+    "deleteRowConfirm": "Delete this catalog row?",
+    "deleteBlocked": "Could not delete: other records still reference it.",
     "emptyUsers": "No accounts.",
-    "loadFailed": "Could not load. Apply the admin migration, then sign in again."
+    "loadFailed": "Could not load. Apply the admin migrations, then sign in again.",
+    "team": "Team",
+    "teamHint": "Full name, email, and optional phone. A temporary password is generated and emailed. The employee must change it on first sign-in.",
+    "hireAgent": "Hire an agent",
+    "fullName": "Full name",
+    "phone": "Phone",
+    "hired": "Agent added. An email was sent with the /employes link and a temporary password.",
+    "hiredNoEmail": "Agent added, but the email could not be sent. Share the temporary password below and the /employes link.",
+    "tempPassword": "Temporary password",
+    "hireFailed": "Could not hire this agent.",
+    "revokeAgent": "Remove agent access",
+    "noAgents": "No agents yet.",
+    "topicsHint": "Directory of common problems. Agents use it to resolve, or they transfer to technical.",
+    "landing": "Public site",
+    "landingHint": "Every block on miletaxe.com is edited here. Save FR and EN separately, then open the site to check.",
+    "landingFormatHint": "Select text, then use Bold, Title, size and Center. Buttons (Sign in, Create account, download) stay plain text.",
+    "landingSave": "Publish this language",
+    "landingSaved": "Landing saved. Reload the site to see the result.",
+    "landingSaveFailed": "Could not save. Apply migration 00013, then sign in again.",
+    "landingView": "View site",
+    "landingReset": "Restore original copy",
+    "landingResetConfirm": "Replace the draft with the original copy for this language?",
+    "landingSeo": "Search listing",
+    "landingMetaTitle": "Browser tab title",
+    "landingMetaDescription": "Description for Google / Play Console",
+    "landingNav": "Top buttons",
+    "landingLogin": "Sign in",
+    "landingRegister": "Create account",
+    "landingDownloads": "Download the app",
+    "landingDownloadsHint": "A button appears only when both the label and an https URL are filled. Publish FR and EN with the same link, or the other language will miss the button.",
+    "landingPlayLabel": "Google Play button",
+    "landingPlayUrl": "Google Play link",
+    "landingIosLabel": "App Store button",
+    "landingIosUrl": "App Store link",
+    "landingStoreUrlHint": "Paste the full URL, e.g. https://play.google.com/store/apps/details?id=com.miletax.app — leave empty to hide the button.",
+    "landingHero": "Hero band",
+    "landingEyebrow": "Eyebrow",
+    "landingTitle": "Title",
+    "landingBody": "Body",
+    "landingCta": "Primary button",
+    "landingSecondary": "Secondary button",
+    "landingNote": "Note under the buttons",
+    "landingSection": "Block",
+    "landingVisible": "Visible",
+    "landingUp": "Up",
+    "landingDown": "Down",
+    "landingNavId": "Menu anchor",
+    "landingNavIdHint": "e.g. features — leave empty to hide it from the menu.",
+    "landingNavLabel": "Menu label",
+    "landingIcons": "Icons on cards",
+    "landingCard": "Card",
+    "landingAddCard": "Add a card",
+    "landingPlaySoon": "Play Store note",
+    "landingAddSection": "Add a block",
+    "landingAddGrid": "Cards",
+    "landingAddSteps": "Numbered steps",
+    "landingAddTrust": "Trust block",
+    "landingAddScreens": "Screenshots",
+    "landingAddCta": "Final call",
+    "landingRemoveSectionConfirm": "Remove this block from the landing?",
+    "landingFooter": "Footer",
+    "landingFooterRights": "Copyright ({{year}} will be replaced)",
+    "landingFooterPrivacy": "Privacy link",
+    "landingFooterTerms": "Terms link",
+    "legalPages": "Legal pages",
+    "legalHint": "Privacy and terms, FR and EN. Publish, then open the public page to check.",
+    "legalPrivacy": "Privacy",
+    "legalTerms": "Terms",
+    "legalSave": "Publish this page",
+    "legalSaved": "Legal page saved.",
+    "legalSaveFailed": "Could not save. Apply migration 00014, then sign in again.",
+    "legalView": "View page",
+    "legalResetConfirm": "Replace the draft with the original copy?",
+    "legalTitle": "Page title",
+    "legalUpdatedOn": "Last updated",
+    "legalUpdatedOnHint": "YYYY-MM-DD",
+    "legalSection": "Article",
+    "legalHeading": "Article heading",
+    "legalBody": "Body",
+    "legalAddSection": "Add an article",
+    "legalRemoveSectionConfirm": "Remove this article?",
+    "landingKind": {
+      "grid": "cards",
+      "steps": "steps",
+      "trust": "trust",
+      "screens": "screenshots",
+      "cta": "call"
+    }
+  },
+  "support": {
+    "helpTitle": "Help",
+    "helpHint": "Describe the issue. An available agent will open the conversation.",
+    "message": "Your message",
+    "send": "Send",
+    "start": "Send to an agent",
+    "conversation": "Conversation",
+    "user": "User",
+    "inbox": "Conversations",
+    "inboxHint": "Open a waiting or already claimed conversation.",
+    "techInbox": "Technical",
+    "techInboxHint": "Cases transferred by an agent, too complex for the desk.",
+    "deskTitle": "Employee desk",
+    "deskLogin": "Employee sign-in",
+    "deskLoginHint": "For agents hired by the admin only.",
+    "notDesk": "This account is not an agent.",
+    "adminUseTech": "Admins handle transfers in Administration → Technical.",
+    "topics": "Problem directory",
+    "topicsHint": "Solutions to apply. If it goes beyond the desk, transfer to technical.",
+    "category": "Category",
+    "solutionFr": "FR solution",
+    "solutionEn": "EN solution",
+    "claim": "Open / claim",
+    "applyTopic": "Resolve with a topic",
+    "escalate": "Transfer to technical (admin)",
+    "emptyInbox": "No conversations yet.",
+    "loadFailed": "Could not load the help desk.",
+    "status": {
+      "open": "Waiting for an agent",
+      "claimed": "Claimed",
+      "escalated": "Transferred to technical",
+      "resolved": "Resolved"
+    },
+    "role": {
+      "user": "User",
+      "agent": "Agent",
+      "admin": "Technical"
+    }
+  },
+  "landing": {
+    "metaTitle": "MileTax — Your records, ready for your accountant",
+    "metaDescription": "Organize mileage, receipts, expenses and income. Hand your accountant a clear package. Not tax software. Support: support@miletaxe.com",
+    "navFeatures": "Features",
+    "navHow": "How it works",
+    "navTrust": "Trust",
+    "login": "Sign in",
+    "register": "Create account",
+    "openApp": "Open the app",
+    "workspace": "My records",
+    "backToSite": "Back to the site",
+    "langFr": "FR",
+    "langEn": "EN",
+    "eyebrow": "For self-employed workers in Canada",
+    "heroTitle": "Your records, ready for your accountant.",
+    "heroBody": "Photograph the odometer and receipts. File mileage, expenses and income. Export a clear package — without computing tax, without replacing your accountant.",
+    "heroCta": "Start for free",
+    "heroSecondary": "I already have an account",
+    "heroNote": "MileTax organizes your records. It is not tax advice.",
+    "playSoon": "Coming to Google Play. Already available here on the web.",
+    "problemTitle": "Your accountant cannot file a shoebox.",
+    "problemBody": "Mileage in a notebook, receipts at the bottom of a bag, income in three apps. At year-end you lose time — and often amounts you could have supported.",
+    "pains": [
+      { "title": "Fuzzy kilometres", "body": "Without dated odometer readings, the travel file does not hold. Your accountant cannot invent the numbers." },
+      { "title": "Unreadable receipts", "body": "A photo taken too late, a forgotten amount, a random category. The file becomes incomplete." },
+      { "title": "Nothing ready to hand over", "body": "You worked all year. You still lack the single, dated package your accountant can open." }
+    ],
+    "featuresTitle": "Everything a clean file needs.",
+    "features": [
+      { "title": "Photographed odometer", "body": "Frame the meter. Confirm the reading. Distance segments are built from your numbers." },
+      { "title": "Receipts you confirm", "body": "Automated reading suggests fields. Nothing is saved until you approve it." },
+      { "title": "Expenses and income", "body": "File against your province’s catalogs. Totals are sums of what you entered — not a tax figure." },
+      { "title": "Accountant package", "body": "A preparatory PDF gathers readings, receipts and income. You send it. Nothing is emailed automatically." },
+      { "title": "Your data, your account", "body": "Each file is isolated. Export a copy or delete the account whenever you want." },
+      { "title": "Help when you are stuck", "body": "A thread with an agent, without exposing every amount to the whole team." }
+    ],
+    "screensTitle": "The app, as it is.",
+    "howTitle": "Three moves, all year.",
+    "steps": [
+      { "title": "Open the account", "body": "Email, province, occupation. The app follows your jurisdiction’s catalogs — not a tax calculation." },
+      { "title": "Capture as you go", "body": "Odometer after a run. Receipt before it vanishes. Income when it lands." },
+      { "title": "Hand over the package", "body": "When the accountant asks, the file is already there. Keep your originals." }
+    ],
+    "trustTitle": "Clear about what MileTax is not.",
+    "trust": [
+      { "title": "Not tax software", "body": "No GST/HST amount due, no pre-filled return, no tax advice. Your accountant remains the professional." },
+      { "title": "Confirm before save", "body": "OCR and suggestions stay proposals. You confirm the amount, date and category." },
+      { "title": "Public legal pages", "body": "Privacy policy and terms: https://miletaxe.com/legal/privacy and https://miletaxe.com/legal/terms" },
+      { "title": "One support address", "body": "support@miletaxe.com — for a question, an access request, or an account issue." }
+    ],
+    "finalTitle": "Stop rebuilding the year in March.",
+    "finalBody": "Keep the file now. Your accountant will receive something they can read.",
+    "footerRights": "© {{year}} MileTax. All rights reserved.",
+    "footerPrivacy": "Privacy policy",
+    "footerTerms": "Terms of use"
+  },
+  "editor": {
+    "bold": "Bold",
+    "italic": "Italic",
+    "underline": "Underline",
+    "h1": "Title 1",
+    "h2": "Title 2",
+    "h3": "Title 3",
+    "small": "Small",
+    "normal": "Normal",
+    "large": "Large",
+    "left": "Left",
+    "center": "Center",
+    "right": "Right",
+    "list": "List"
   },
   "setup": {
     "title": "Setup required",

@@ -89,7 +89,8 @@ export function useExpenses() {
         .from('expenses')
         .select('*')
         .eq('user_id', user!.id)
-        .order('incurred_on', { ascending: false });
+        .order('incurred_on', { ascending: false })
+        .limit(200);
       if (error) throw error;
       return (data as Record<string, unknown>[]).map(hydrateExpense);
     },
@@ -118,7 +119,8 @@ export function useReceipts() {
         .from('receipts')
         .select('*')
         .eq('user_id', user!.id)
-        .order('captured_at', { ascending: false });
+        .order('captured_at', { ascending: false })
+        .limit(200);
       if (error) throw error;
       return (data as Record<string, unknown>[]).map(hydrateReceipt);
     },

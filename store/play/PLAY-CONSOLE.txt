@@ -1,0 +1,158 @@
+MileTax — Play Console (à coller)
+Package : com.miletax.app
+Nom : MileTax
+Catégorie : Business (Affaires)
+Courriel : support@miletaxe.com
+Site : https://miletaxe.com
+Confidentialité : https://miletaxe.com/legal/privacy
+Conditions : https://miletaxe.com/legal/terms
+Suppression de compte (in-app) : Réglages → Supprimer le compte
+URL suppression (si demandée) : https://miletaxe.com
+Public : 18+  |  Pas conçue pour les enfants  |  Pas de pubs  |  Pas d’achats intégrés
+
+================================================================
+FICHE FR
+================================================================
+Titre (30)
+MileTax
+
+Courte description (80)
+Organisez km, reçus et revenus. Un dossier clair pour votre comptable.
+
+Description complète
+MileTax aide les travailleurs autonomes à organiser leurs dossiers professionnels : véhicules, kilométrage, reçus, dépenses et revenus. Vous préparez un paquet clair à remettre à votre comptable.
+
+Ce n’est pas un logiciel d’impôt. MileTax ne calcule pas d’impôt, ne produit pas de déclaration et ne remplace pas un professionnel.
+
+• Photographiez l’odomètre et confirmez le relevé
+• Photographiez un reçu : la lecture automatique propose des champs, vous validez avant d’enregistrer
+• Classez dépenses et revenus selon votre province
+• Générez un dossier PDF préparatoire — c’est vous qui le transmettez
+• Exportez une copie JSON ou supprimez le compte à tout moment
+
+Les totaux à l’écran sont la somme de ce que vous avez saisi, pas un montant d’impôt. Conservez vos originaux.
+
+Support : support@miletaxe.com
+Confidentialité : https://miletaxe.com/legal/privacy
+Conditions : https://miletaxe.com/legal/terms
+
+================================================================
+FICHE EN
+================================================================
+Title (30)
+MileTax
+
+Short description (80)
+Organize mileage, receipts and income. A clear file for your accountant.
+
+Full description
+MileTax helps self-employed workers organize business records: vehicles, mileage, receipts, expenses and income. You prepare a clear package to hand to your accountant.
+
+This is not tax software. MileTax does not compute tax, file a return, or replace a professional.
+
+• Photograph the odometer and confirm the reading
+• Photograph a receipt: automated reading suggests fields; you confirm before saving
+• File expenses and income against your province’s catalogs
+• Generate a preparatory PDF — you send it
+• Export a JSON copy or delete the account at any time
+
+On-screen totals are sums of what you entered, not a tax figure. Keep your originals.
+
+Support: support@miletaxe.com
+Privacy: https://miletaxe.com/legal/privacy
+Terms: https://miletaxe.com/legal/terms
+
+================================================================
+VISUELS (déjà dans ce dossier)
+================================================================
+Icône 512 : store/play/hi-res-icon-512.png
+Bandeau 1024×500 : store/play/feature-graphic-1024x500.png
+Téléphone (ordre suggéré, 1080×1920) :
+  1. play-01-accueil-1080x1920.jpg
+  2. play-06-odometre-1080x1920.jpg
+  3. play-02-scanner-recu-1080x1920.jpg
+  4. play-03-ajouter-revenu-1080x1920.jpg
+  5. play-04-dossier-comptable-1080x1920.jpg
+  6. play-05-totaux-pdf-1080x1920.jpg
+  7. play-07-connexion-1080x1920.jpg
+  8. play-08-inscription-1080x1920.jpg
+Tablette / TV / Wear : ne pas remplir
+Vidéo : facultatif
+
+================================================================
+SÉCURITÉ DES DONNÉES (Data safety)
+================================================================
+Aperçu
+- Collecte des données : Oui
+- Données chiffrées en transit : Oui (HTTPS)
+- Les utilisateurs peuvent demander la suppression : Oui
+- Les données sont-elles vendues : Non
+- Conçue pour les enfants : Non
+
+Collecté — déclarer
+1. Adresse e-mail
+   Finalités : Fonctionnalité de l’app, Gestion du compte
+   Obligatoire (pour créer un compte)
+   Chiffré en transit : Oui
+   Suppression : Oui
+2. Nom
+   Finalités : Fonctionnalité de l’app
+   Facultatif
+   Chiffré en transit : Oui  |  Suppression : Oui
+3. Numéro de téléphone
+   Finalités : Fonctionnalité de l’app (comptes employés, si fourni)
+   Facultatif
+   Chiffré en transit : Oui  |  Suppression : Oui
+4. Photos
+   Finalités : Fonctionnalité de l’app (reçus, odomètre)
+   Facultatif (l’app fonctionne sans photo, saisie manuelle)
+   Chiffré en transit : Oui  |  Suppression : Oui
+5. Autres contenus utilisateur (montants, catégories, véhicules, relevés, notes, nom/courriel du comptable saisis)
+   Finalités : Fonctionnalité de l’app
+   Facultatif
+   Chiffré en transit : Oui  |  Suppression : Oui
+6. Messages d’aide (si l’utilisateur écrit au soutien)
+   Finalités : Assistance client
+   Facultatif
+   Chiffré en transit : Oui  |  Suppression : Oui (avec le compte)
+
+Ne PAS déclarer
+- Localisation (pas de GPS)
+- Infos de paiement / numéro de carte (le « mode de paiement » d’un reçu est une étiquette)
+- Identifiant publicitaire
+- Contacts de l’appareil
+- Journaux de plantage / analytics dans l’app (aucun SDK d’audience dans l’app)
+
+Partagé
+- Non, si vous traitez Supabase / OCR / Resend comme prestataires de service (ils agissent pour vous, pas pour leur pub).
+- Si le formulaire force un partage pour l’OCR cloud : Photos → Fonctionnalité de l’app → prestataire OCR uniquement pour suggérer des champs.
+
+================================================================
+QUESTIONNAIRE CONTENU / IARC
+================================================================
+- Pas de violence, sexe, drogue, armes
+- Pas de pub
+- Les utilisateurs peuvent envoyer des messages au soutien (pas un réseau social public)
+- Photos privées liées au compte, pas un fil public
+- Public cible : 18 ans et plus
+- Families / « conçu pour les enfants » : Non
+
+Fonctionnalités financières Play
+- Pas de banque, paiement, crédit, crypto, ni déclaration fiscale
+- Répondre Non (organisation de dossiers seulement)
+
+================================================================
+COMPTE PLAY + BUILD
+================================================================
+1. play.google.com/console — créer l’app « MileTax », package com.miletax.app (ne plus le changer)
+2. Politique + conditions + Data safety + fiche FR (et EN)
+3. miletaxe.com doit servir https://miletaxe.com/legal/privacy en HTTPS public
+4. Compte Expo : npx eas-cli login   puis   npx eas-cli init
+5. Secrets de build (URL + clé anon, déjà dans .env local) :
+   npx eas-cli secret:create --scope project --name EXPO_PUBLIC_SUPABASE_URL --value …
+   npx eas-cli secret:create --scope project --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value …
+6. AAB : npx eas-cli build --profile production --platform android
+7. Play → Tests → Test interne (pas Production) → créer une piste, ajouter votre Gmail testeur, uploader l’AAB
+8. Quand le test interne s’ouvre et que la politique est en ligne : demander l’examen de production
+
+Ne pas envoyer l’admin web ni /employes comme « l’app » : seul le binaire Android compte pour la revue.

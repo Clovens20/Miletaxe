@@ -3,11 +3,17 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "build": "npx eas-cli build --profile production --platform android",
+    "build:android": "npx eas-cli build --profile production --platform android",
+    "build:web": "npx expo export --platform web",
     "typecheck": "tsc --noEmit",
     "check:i18n": "node scripts/check-i18n.mjs",
     "ci": "npm run typecheck && npm run check:i18n"

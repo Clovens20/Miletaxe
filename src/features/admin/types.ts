@@ -22,4 +22,8 @@ export type CatalogSection =
   | 'occupations'
   | 'expenseCategories'
   | 'incomeCategories'
-  | 'integrityRules';
+  | 'integrityRules'
+  | 'mileageMethods'
+  | 'mileageTiers'
+  | 'reportSections'
+  | 'assistantChecks';

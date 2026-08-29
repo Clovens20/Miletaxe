@@ -65,7 +65,8 @@ export function useOdometerReadings(vehicleId?: string) {
         .from('odometer_readings')
         .select('*')
         .eq('user_id', user!.id)
-        .order('recorded_at', { ascending: false });
+        .order('recorded_at', { ascending: false })
+        .limit(200);
       if (vehicleId) query = query.eq('vehicle_id', vehicleId);
       const { data, error } = await query;
       if (error) throw error;
@@ -89,7 +90,12 @@ export function useDistanceSegments(vehicleId?: string) {
         const local = await loadLocal();
         return (local.segments as DistanceSegment[]).filter((row) => !vehicleId || row.vehicle_id === vehicleId);
       }
-      let query = getSupabase().from('distance_segments').select('*').eq('user_id', user!.id);
+      let query = getSupabase()
+        .from('distance_segments')
+        .select('*')
+        .eq('user_id', user!.id)
+        .order('started_on', { ascending: false })
+        .limit(200);
       if (vehicleId) query = query.eq('vehicle_id', vehicleId);
       const { data, error } = await query;
       if (error) throw error;

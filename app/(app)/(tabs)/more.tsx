@@ -46,6 +46,11 @@ export default function MoreScreen() {
           onPress={() => router.push('/(app)/settings/accountant')}
         />
         <ListRow
+          icon="chatbubble-ellipses-outline"
+          title={t('more.support')}
+          onPress={() => router.push('/(app)/support' as Href)}
+        />
+        <ListRow
           icon="settings-outline"
           title={t('more.settings')}
           onPress={() => router.push('/(app)/settings')}

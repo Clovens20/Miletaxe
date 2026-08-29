@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import { Image, Platform, StyleSheet, View } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts, DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold, DMSans_700Bold } from '@expo-google-fonts/dm-sans';
@@ -13,7 +13,7 @@ import '@/lib/i18n';
 void SplashScreen.preventAutoHideAsync();
 
 function Gate() {
-  const { isLoading, session, profile, configured, preview } = useAuth();
+  const { isLoading, session, profile, configured, preview, isStaff, isAgent } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
@@ -22,6 +22,8 @@ function Gate() {
     const group = segments[0];
     const inLegal = group === 'legal';
     const inAdmin = group === 'admin';
+    const inEmployes = group === 'employes';
+    const onWebRoot = Platform.OS === 'web' && group === undefined;
 
     if (!configured && !preview) {
       if (group !== undefined && !inLegal) router.replace('/');
@@ -29,13 +31,15 @@ function Gate() {
     }
 
     if (!session) {
-      if (group !== '(auth)' && !inLegal && !inAdmin) router.replace('/(auth)/login');
+      if (group !== '(auth)' && !inLegal && !inAdmin && !inEmployes && !onWebRoot) {
+        router.replace('/(auth)/login');
+      }
       return;
     }
 
-    if (inAdmin) return;
+    if (inAdmin || inEmployes || onWebRoot) return;
 
-    if (!profile?.onboarding_completed_at) {
+    if (!profile?.onboarding_completed_at && !isStaff && !isAgent) {
       if (group !== '(onboarding)' && !inLegal) router.replace('/(onboarding)');
       return;
     }
@@ -43,7 +47,7 @@ function Gate() {
     if (group !== '(app)' && !inLegal) {
       router.replace('/(app)/(tabs)');
     }
-  }, [configured, isLoading, preview, profile?.onboarding_completed_at, router, segments, session]);
+  }, [configured, isAgent, isLoading, isStaff, preview, profile?.onboarding_completed_at, router, segments, session]);
 
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
@@ -53,6 +57,7 @@ function Gate() {
       <Stack.Screen name="(app)" />
       <Stack.Screen name="legal" />
       <Stack.Screen name="admin" />
+      <Stack.Screen name="employes" />
     </Stack>
   );
 }

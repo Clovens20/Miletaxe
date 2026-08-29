@@ -40,10 +40,16 @@ async function readTable<T>(table: string, fallback: T[], filter?: (rows: T[]) =
   return filter ? filter(rows) : rows;
 }
 
+const catalogQuery = {
+  staleTime: 30 * 60 * 1000,
+  gcTime: 60 * 60 * 1000,
+};
+
 export function useCountries() {
   return useQuery({
     queryKey: ['catalog', 'countries'],
     queryFn: () => readTable<CountryRecord>('countries', fallbackCountries),
+    ...catalogQuery,
   });
 }
 
@@ -55,6 +61,7 @@ export function useJurisdictions(countryCode?: string | null) {
         countryCode ? rows.filter((row) => row.country_code === countryCode) : rows,
       ),
     enabled: Boolean(countryCode),
+    ...catalogQuery,
   });
 }
 
@@ -65,6 +72,7 @@ export function useTaxYears(countryCode?: string | null) {
       readTable<TaxYearRecord>('tax_years', fallbackTaxYears, (rows) =>
         countryCode ? rows.filter((row) => row.country_code === countryCode) : rows,
       ),
+    ...catalogQuery,
   });
 }
 
@@ -75,6 +83,7 @@ export function useOccupations(countryCode?: string | null) {
       readTable<OccupationRecord>('occupation_catalog', fallbackOccupations, (rows) =>
         rows.filter((row) => !row.country_code || row.country_code === countryCode),
       ),
+    ...catalogQuery,
   });
 }
 
@@ -86,6 +95,7 @@ export function useExpenseCategories(countryCode?: string | null) {
         countryCode ? rows.filter((row) => row.country_code === countryCode) : rows,
       ),
     enabled: Boolean(countryCode),
+    ...catalogQuery,
   });
 }
 
@@ -97,6 +107,7 @@ export function useIncomeCategories(countryCode?: string | null) {
         countryCode ? rows.filter((row) => row.country_code === countryCode) : rows,
       ),
     enabled: Boolean(countryCode),
+    ...catalogQuery,
   });
 }
 
@@ -107,6 +118,7 @@ export function useMileageMethods(countryCode?: string | null) {
       readTable<MileageMethodRecord>('mileage_rate_methods', fallbackMileageMethods, (rows) =>
         countryCode ? rows.filter((row) => row.country_code === countryCode) : rows,
       ),
+    ...catalogQuery,
   });
 }
 
@@ -117,6 +129,7 @@ export function useReportSections(countryCode?: string | null) {
       readTable<ReportSectionRecord>('report_section_templates', fallbackReportSections, (rows) =>
         countryCode ? rows.filter((row) => row.country_code === countryCode) : rows,
       ),
+    ...catalogQuery,
   });
 }
 
@@ -124,6 +137,7 @@ export function useIntegrityRules() {
   return useQuery({
     queryKey: ['catalog', 'integrity-rules'],
     queryFn: () => readTable<IntegrityRuleRecord>('integrity_rule_definitions', fallbackIntegrityRules),
+    ...catalogQuery,
   });
 }
 
@@ -131,6 +145,7 @@ export function useAssistantChecks() {
   return useQuery({
     queryKey: ['catalog', 'assistant-checks'],
     queryFn: () => readTable<AssistantCheckRecord>('assistant_check_definitions', fallbackAssistantChecks),
+    ...catalogQuery,
   });
 }
 

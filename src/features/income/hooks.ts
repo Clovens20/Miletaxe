@@ -22,7 +22,8 @@ export function useIncome() {
         .from('income_entries')
         .select('*')
         .eq('user_id', user!.id)
-        .order('received_on', { ascending: false });
+        .order('received_on', { ascending: false })
+        .limit(200);
       if (error) throw error;
       return data as IncomeEntry[];
     },

@@ -196,6 +196,7 @@ export type Database = {
         Row: {
           id: string;
           full_name: string | null;
+          phone: string | null;
           preferred_locale: string;
           country_code: string | null;
           jurisdiction_id: string | null;
@@ -516,6 +517,71 @@ export type Database = {
         };
         Update: Partial<Database['public']['Tables']['assistant_review_events']['Row']>;
       };
+      support_topics: {
+        Row: {
+          id: string;
+          code: string;
+          category: string;
+          title_i18n: Json;
+          body_i18n: Json;
+          sort_order: number;
+          is_active: boolean;
+        };
+        Insert: Row;
+        Update: Row;
+      };
+      support_threads: {
+        Row: {
+          id: string;
+          user_id: string;
+          status: 'open' | 'claimed' | 'escalated' | 'resolved';
+          assigned_agent_id: string | null;
+          escalated_by: string | null;
+          topic_id: string | null;
+          last_message_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Row;
+        Update: Row;
+      };
+      support_messages: {
+        Row: {
+          id: string;
+          thread_id: string;
+          author_id: string;
+          author_role: 'user' | 'agent' | 'admin';
+          body: string;
+          created_at: string;
+        };
+        Insert: Row;
+        Update: Row;
+      };
+      landing_pages: {
+        Row: {
+          locale: string;
+          content: Json;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: Partial<Database['public']['Tables']['landing_pages']['Row']> & { locale: string; content: Json };
+        Update: Partial<Database['public']['Tables']['landing_pages']['Row']>;
+      };
+      legal_pages: {
+        Row: {
+          locale: string;
+          kind: string;
+          content: Json;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: Partial<Database['public']['Tables']['legal_pages']['Row']> & {
+          locale: string;
+          kind: string;
+          content: Json;
+        };
+        Update: Partial<Database['public']['Tables']['legal_pages']['Row']>;
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -540,6 +606,38 @@ export type Database = {
           country_code: string | null;
           created_at: string;
           onboarding_completed_at: string | null;
+        }[];
+      };
+      is_agent: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      is_support: {
+        Args: Record<string, never>;
+        Returns: boolean;
+      };
+      support_inbox: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string;
+          user_id: string;
+          user_email: string | null;
+          user_name: string | null;
+          status: string;
+          assigned_agent_id: string | null;
+          topic_id: string | null;
+          last_message_at: string;
+          created_at: string;
+        }[];
+      };
+      admin_list_agents: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string;
+          email: string | null;
+          full_name: string | null;
+          phone: string | null;
+          created_at: string;
         }[];
       };
     };

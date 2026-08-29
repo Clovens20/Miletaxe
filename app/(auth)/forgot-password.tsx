@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
+import { BackToSite } from '@/features/marketing/BackToSite';
 import { TextField } from '@/components/ui/TextField';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { forgotPasswordSchema, type ForgotPasswordValues } from '@/lib/validation/schemas';
@@ -32,6 +33,7 @@ export default function ForgotPasswordScreen() {
 
   return (
     <Screen title={t('auth.forgotTitle')} subtitle={t('auth.forgotSubtitle')} scroll home={false}>
+      <BackToSite />
       <Controller
         control={control}
         name="email"

@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import type { Session, User } from '@supabase/supabase-js';
 import * as Linking from 'expo-linking';
 
-import { isStaffUser } from '@/features/admin/staff';
+import { isAgentUser, isStaffUser, mustChangePassword } from '@/features/admin/staff';
 import { getSupabase, isLocalMode, isSupabaseConfigured, isUiPreview, setLocalModeOverride } from '@/lib/supabase/client';
 import { setAppLocale } from '@/lib/i18n';
 import { queryClient } from '@/lib/query/client';
@@ -20,6 +20,8 @@ type AuthState = {
   configured: boolean;
   preview: boolean;
   isStaff: boolean;
+  isAgent: boolean;
+  mustChangePassword: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<{ needsEmailConfirmation: boolean }>;
   signOut: () => Promise<void>;
@@ -93,6 +95,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       configured: isSupabaseConfigured,
       preview: isUiPreview,
       isStaff: isStaffUser(session?.user),
+      isAgent: isAgentUser(session?.user),
+      mustChangePassword: mustChangePassword(session?.user),
       signIn: async (email, password) => {
         if (!isSupabaseConfigured) throw new Error('not_configured');
         setLocalModeOverride(false);
@@ -133,6 +137,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (reauthError) throw reauthError;
         const { error } = await client.auth.updateUser({ password: newPassword });
         if (error) throw error;
+        if (mustChangePassword(session?.user)) {
+          const clearFn = process.env.EXPO_PUBLIC_CLEAR_PASSWORD_FLAG_FUNCTION_NAME ?? 'clear-must-change-password';
+          const { error: clearError } = await client.functions.invoke(clearFn);
+          if (clearError) throw clearError;
+          await client.auth.refreshSession();
+        }
       },
       refreshProfile: async () => {
         if (session?.user.id) await loadProfile(session.user.id);

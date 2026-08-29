@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
 
 import { BrandMark } from '@/components/ui/BrandMark';
+import { BackToSite } from '@/features/marketing/BackToSite';
 import { Button } from '@/components/ui/Button';
 import { DisclaimerBanner } from '@/components/ui/DisclaimerBanner';
 import { Screen } from '@/components/ui/Screen';
@@ -36,6 +37,7 @@ export default function RegisterScreen() {
 
   return (
     <Screen scroll home={false} back={false}>
+      <BackToSite />
       <BrandMark />
       <Text style={styles.title}>{t('auth.registerTitle')}</Text>
       <Text style={styles.subtitle}>{t('auth.registerSubtitle')}</Text>

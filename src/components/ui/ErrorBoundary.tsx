@@ -2,6 +2,7 @@ import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { i18n } from '@/lib/i18n';
+import { PRODUCT } from '@/lib/constants';
 import { colors, space, type } from '@/theme';
 
 type Props = { children: ReactNode };
@@ -24,7 +25,7 @@ export class ErrorBoundary extends Component<Props, State> {
     return (
       <View style={styles.wrap}>
         <Text style={styles.title}>{i18n.t('common.crashTitle')}</Text>
-        <Text style={styles.body}>{i18n.t('common.crashBody')}</Text>
+        <Text style={styles.body}>{i18n.t('common.crashBody', { email: PRODUCT.supportEmail })}</Text>
         <Pressable
           accessibilityRole="button"
           onPress={() => this.setState({ error: null })}

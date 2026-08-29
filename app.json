@@ -2,6 +2,7 @@
   "expo": {
     "name": "MileTax",
     "slug": "miletax",
+    "owner": "clovens2020",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -31,10 +32,20 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.miletax.app",
+      "versionCode": 1,
       "softwareKeyboardLayoutMode": "resize",
+      "playStoreUrl": "https://play.google.com/store/apps/details?id=com.miletax.app",
       "permissions": [
-        "CAMERA",
-        "READ_MEDIA_IMAGES"
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "blockedPermissions": [
+        "com.google.android.gms.permission.AD_ID",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -67,6 +78,14 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "privacyPolicyUrl": "https://miletaxe.com/legal/privacy",
+      "termsUrl": "https://miletaxe.com/legal/terms",
+      "router": {},
+      "eas": {
+        "projectId": "80acb571-5260-4b2a-afde-14c2e5e6ef9e"
+      }
     }
   }
 }
