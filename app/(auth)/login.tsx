@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { DisclaimerBanner } from '@/components/ui/DisclaimerBanner';
 import { Screen } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
+import { authErrorKey } from '@/features/auth/authErrors';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { loginSchema, type LoginValues } from '@/lib/validation/schemas';
 import { colors, space, type } from '@/theme';
@@ -28,8 +29,8 @@ export default function LoginScreen() {
     setFormError(null);
     try {
       await signIn(values.email, values.password);
-    } catch {
-      setFormError(t('auth.invalidCredentials'));
+    } catch (error) {
+      setFormError(t(authErrorKey(error, 'login')));
     }
   });
 

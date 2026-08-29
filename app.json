@@ -32,7 +32,6 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.miletax.app",
-      "versionCode": 1,
       "softwareKeyboardLayoutMode": "resize",
       "playStoreUrl": "https://play.google.com/store/apps/details?id=com.miletax.app",
       "permissions": [

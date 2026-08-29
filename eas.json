@@ -8,7 +8,8 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_UI_PREVIEW": "false"
+        "EXPO_PUBLIC_UI_PREVIEW": "false",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://ztjjmdsyvrcnptcqoylu.supabase.co"
       }
     },
     "internal": {
@@ -17,7 +18,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_UI_PREVIEW": "false"
+        "EXPO_PUBLIC_UI_PREVIEW": "false",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://ztjjmdsyvrcnptcqoylu.supabase.co"
       }
     },
     "production": {
@@ -26,7 +28,8 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_UI_PREVIEW": "false"
+        "EXPO_PUBLIC_UI_PREVIEW": "false",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://ztjjmdsyvrcnptcqoylu.supabase.co"
       }
     }
   },
