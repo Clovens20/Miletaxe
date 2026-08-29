@@ -31,7 +31,11 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
+
+# Supabase CLI local cache
+supabase/.temp/
 
 # typescript
 *.tsbuildinfo
@@ -39,3 +43,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# éditeur local
+.cursor/

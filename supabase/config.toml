@@ -1,0 +1,27 @@
+project_id = "miletax"
+
+[api]
+enabled = true
+
+[auth]
+enabled = true
+site_url = "miletax://auth-callback"
+
+[storage]
+enabled = true
+file_size_limit = "10MiB"
+
+[functions.extract-receipt]
+verify_jwt = true
+
+[functions.extract-odometer]
+verify_jwt = true
+
+[functions.review-records]
+verify_jwt = true
+
+[functions.delete-account]
+verify_jwt = true
+
+[functions.admin-delete-user]
+verify_jwt = true

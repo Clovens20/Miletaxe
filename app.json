@@ -1,25 +1,72 @@
 {
   "expo": {
-    "name": "MileTaxe",
-    "slug": "MileTaxe",
+    "name": "MileTax",
+    "slug": "miletax",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "scheme": "miletax",
     "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#070807"
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.miletax.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "MileTax utilise l'appareil photo pour photographier vos reçus et votre odomètre.",
+        "NSPhotoLibraryUsageDescription": "MileTax accède à vos photos pour enregistrer vos reçus et relevés.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#070807",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.miletax.app",
+      "softwareKeyboardLayoutMode": "resize",
+      "permissions": [
+        "CAMERA",
+        "READ_MEDIA_IMAGES"
+      ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-localization",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#070807",
+          "image": "./assets/logo.png",
+          "imageWidth": 240,
+          "resizeMode": "contain"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "MileTax a besoin d'accéder à vos photos pour enregistrer vos reçus.",
+          "cameraPermission": "MileTax a besoin de l'appareil photo pour photographier vos reçus et votre odomètre."
+        }
+      ],
+      "expo-sharing"
+    ],
+    "experiments": {
+      "typedRoutes": true
     }
   }
 }

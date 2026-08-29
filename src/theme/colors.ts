@@ -1,0 +1,31 @@
+/** Palette extraite du logo MileTaxe (pin lime, Mile bleu, aiguille orange, encre). */
+export const colors = {
+  bg: '#F3FAF4',
+  surface: '#FFFFFF',
+  surfaceMuted: '#E4F5E7',
+  surfaceElevated: '#FBFEFB',
+  primary: '#188F2A',
+  primaryPressed: '#0F6B1E',
+  primaryMuted: '#B6F0BE',
+  primarySoft: '#E6F9E9',
+  accent: '#FF6A12',
+  accentSoft: '#FFE8D6',
+  text: '#0C140E',
+  textSecondary: '#3E5344',
+  textMuted: '#6B8070',
+  textInverse: '#F7FFF8',
+  border: '#C9E6CE',
+  borderStrong: '#94C89C',
+  danger: '#E11D24',
+  dangerSoft: '#FDE3E4',
+  warning: '#F5A400',
+  warningSoft: '#FFF3D1',
+  success: '#188F2A',
+  successSoft: '#D8F8DE',
+  info: '#1A6DFF',
+  infoSoft: '#DCE8FF',
+  ink: '#070807',
+  overlay: 'rgba(7, 8, 7, 0.52)',
+} as const;
+
+export type ColorName = keyof typeof colors;
