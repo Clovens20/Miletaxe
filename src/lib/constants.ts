@@ -12,6 +12,7 @@ export const PRODUCT = {
 export const LEGAL_URLS = {
   privacy: `${PRODUCT.siteOrigin}/legal/privacy`,
   terms: `${PRODUCT.siteOrigin}/legal/terms`,
+  deleteAccount: `${PRODUCT.siteOrigin}/legal/delete-account`,
 } as const;
 
 export const STORAGE_BUCKETS = {

@@ -6,8 +6,8 @@ Courriel : support@miletaxe.com
 Site : https://miletaxe.com
 Confidentialité : https://miletaxe.com/legal/privacy
 Conditions : https://miletaxe.com/legal/terms
-Suppression de compte (in-app) : Réglages → Supprimer le compte
-URL suppression (si demandée) : https://miletaxe.com
+Suppression de compte (in-app) : Plus → Réglages → Supprimer mon compte
+URL suppression (Play, obligatoire) : https://miletaxe.com/legal/delete-account
 Public : 18+  |  Pas conçue pour les enfants  |  Pas de pubs  |  Pas d’achats intégrés
 
 ================================================================
@@ -146,7 +146,11 @@ COMPTE PLAY + BUILD
 ================================================================
 1. play.google.com/console — créer l’app « MileTax », package com.miletax.app (ne plus le changer)
 2. Politique + conditions + Data safety + fiche FR (et EN)
-3. miletaxe.com doit servir https://miletaxe.com/legal/privacy en HTTPS public
+3. miletaxe.com doit servir en HTTPS public :
+   https://miletaxe.com/legal/privacy
+   https://miletaxe.com/legal/delete-account
+   Play → Politique de suppression de compte : coller https://miletaxe.com/legal/delete-account
+   Dans l’app : oui. Par le web : demande à support@miletaxe.com (30 jours). Données : tout le compte et les dossiers.
 4. Compte Expo : npx eas-cli login   puis   npx eas-cli init
 5. Secrets de build (URL + clé anon, déjà dans .env local) :
    npx eas-cli secret:create --scope project --name EXPO_PUBLIC_SUPABASE_URL --value …

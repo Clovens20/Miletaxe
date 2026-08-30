@@ -113,7 +113,7 @@ function HeaderLink({ dark, label, onPress }: { dark: boolean; label: string; on
 }
 
 export function SiteFooter() {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const router = useRouter();
   const landing = useLandingContent();
   const content = landing.data ?? defaultLandingContent(landingLocale(i18n.language));
@@ -135,6 +135,10 @@ export function SiteFooter() {
         <Text style={styles.dot}>·</Text>
         <Pressable onPress={() => router.push('/legal/terms' as Href)}>
           <Text style={styles.footerLink}>{content.footer.terms}</Text>
+        </Pressable>
+        <Text style={styles.dot}>·</Text>
+        <Pressable onPress={() => router.push('/legal/delete-account' as Href)}>
+          <Text style={styles.footerLink}>{t('legal.deleteAccountTitle')}</Text>
         </Pressable>
         <Text style={styles.dot}>·</Text>
         <Text style={styles.footerLink}>{PRODUCT.supportEmail}</Text>
