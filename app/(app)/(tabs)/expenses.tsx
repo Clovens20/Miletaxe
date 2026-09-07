@@ -88,6 +88,11 @@ export default function ExpensesScreen() {
         );
       })}
       <Button label={t('expenses.capture')} onPress={() => router.push('/(app)/expenses/scan')} />
+      <Button
+        label={t('expenses.pastTitle')}
+        variant="secondary"
+        onPress={() => router.push('/(app)/expenses/past')}
+      />
       <Button label={t('expenses.history')} variant="secondary" onPress={() => router.push('/(app)/expenses/history')} />
       <Button label={t('expenses.categories')} variant="secondary" onPress={() => router.push('/(app)/expenses/categories')} />
       <Button label={t('expenses.summary')} variant="secondary" onPress={() => router.push('/(app)/expenses/summary')} />

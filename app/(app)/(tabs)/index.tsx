@@ -15,6 +15,7 @@ import { localize } from '@/lib/i18n/localize';
 import { formatDistance, formatMoney, formatYearMonth } from '@/lib/format';
 import { HeroButton } from '@/components/ui/HeroButton';
 import { useGenerateReport, usePreferredReportPeriod } from '@/features/reports/hooks';
+import { useUnreadSupportReplies } from '@/features/support/hooks';
 import type { DistanceUnit, SupportedLocale } from '@/types/domain';
 import { colors, radius, space, type } from '@/theme';
 
@@ -29,6 +30,7 @@ export default function HomeScreen() {
   const assistant = useOpenAssistantCount();
   const generate = useGenerateReport();
   const preferred = usePreferredReportPeriod();
+  const supportReplies = useUnreadSupportReplies();
   const firstName = profile?.full_name?.split(' ')[0];
   const monthLabel = formatYearMonth(dashboard.monthStart.slice(0, 7), locale, profile?.country_code);
   const dash = '—';
@@ -44,9 +46,24 @@ export default function HomeScreen() {
 
   return (
     <Screen scroll home={false} back={false}>
-      <View>
-        <Text style={styles.kicker}>{t('home.taxYear', { year: dashboard.taxYear?.year ?? 2026 })}</Text>
-        <Text style={styles.title}>{t('home.greeting', { name: firstName ? ` ${firstName}` : '' })}</Text>
+      <View style={styles.homeHead}>
+        <View style={styles.homeCopy}>
+          <Text style={styles.kicker}>{t('home.taxYear', { year: dashboard.taxYear?.year ?? 2026 })}</Text>
+          <Text style={styles.title}>{t('home.greeting', { name: firstName ? ` ${firstName}` : '' })}</Text>
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('home.messagesHint')}
+          onPress={() => router.push('/(app)/support' as Href)}
+          style={({ pressed }) => [styles.messageBtn, pressed && styles.pressed]}
+        >
+          <Ionicons name="chatbubble-ellipses" size={22} color={colors.primary} />
+          {supportReplies.count ? (
+            <View style={styles.messageDot}>
+              <Text style={styles.messageDotText}>{supportReplies.count}</Text>
+            </View>
+          ) : null}
+        </Pressable>
       </View>
 
       <View style={styles.actionRow}>
@@ -66,6 +83,15 @@ export default function HomeScreen() {
           onPress={() => router.push('/(app)/income/new')}
         />
       </View>
+
+      <Card>
+        <ListRow
+          icon="time-outline"
+          title={t('home.addPastExpenses')}
+          subtitle={t('home.addPastExpensesHint')}
+          onPress={() => router.push('/(app)/expenses/past')}
+        />
+      </Card>
 
       <HeroButton
         label={t('home.generatePackage')}
@@ -106,13 +132,34 @@ export default function HomeScreen() {
       <Card style={styles.status}>
         <View style={styles.statusHead}>
           <Text style={styles.cardKicker}>{t('home.statusTitle')}</Text>
-          <Text style={[styles.score, { color: barColor }]}>{dashboard.completeness.score} %</Text>
+          <Text style={[styles.score, { color: dashboard.isLoading ? colors.textMuted : barColor }]}>
+            {dashboard.isLoading
+              ? '—'
+              : t('home.statusProgress', {
+                  done: dashboard.completeness.checkDone,
+                  total: dashboard.completeness.checkTotal,
+                })}
+          </Text>
         </View>
         <View style={styles.track}>
-          <View style={[styles.fill, { width: `${dashboard.completeness.score}%`, backgroundColor: barColor }]} />
+          <View
+            style={[
+              styles.fill,
+              {
+                width: dashboard.isLoading ? '0%' : `${dashboard.completeness.score}%`,
+                backgroundColor: barColor,
+              },
+            ]}
+          />
         </View>
         <Text style={styles.statusCopy}>
-          {reviewCount ? t('home.statusReview', { count: reviewCount }) : t('home.completenessOk')}
+          {dashboard.isLoading
+            ? t('common.loading')
+            : dashboard.findings[0]
+              ? localize(dashboard.findings[0].title_i18n, locale)
+              : reviewCount
+                ? t('home.statusReview', { count: reviewCount })
+                : t('home.completenessOk')}
         </Text>
         <View style={styles.statusLinks}>
           <Pressable onPress={() => router.push('/(app)/completeness')}>
@@ -214,6 +261,40 @@ function ActionTile({
 }
 
 const styles = StyleSheet.create({
+  homeHead: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: space.sm,
+  },
+  homeCopy: {
+    flex: 1,
+  },
+  messageBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.primarySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  messageDot: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  messageDotText: {
+    ...type.captionMedium,
+    fontSize: 10,
+    lineHeight: 12,
+    color: colors.textInverse,
+  },
   kicker: {
     ...type.captionMedium,
     color: colors.accent,

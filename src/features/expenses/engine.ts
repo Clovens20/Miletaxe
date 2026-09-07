@@ -191,6 +191,7 @@ export function receiptFormDefaults(input: {
   categories: ExpenseCategoryRecord[];
   currency: string;
   today: string;
+  emptyDate?: boolean;
 }): ReceiptReviewValues {
   if (input.expense) {
     const row = input.expense;
@@ -218,7 +219,7 @@ export function receiptFormDefaults(input: {
     subtotal: '',
     tax_amount: '',
     category_id: '',
-    incurred_on: extracted?.incurred_on ?? input.today,
+    incurred_on: extracted?.incurred_on ?? (input.emptyDate ? '' : input.today),
     incurred_time: extracted?.incurred_time ?? '',
     currency: normalizeCurrency(extracted?.currency, input.currency),
     vehicle_id: '',

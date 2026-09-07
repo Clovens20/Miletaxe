@@ -2,10 +2,13 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 
+import { useUnreadSupportReplies } from '@/features/support/hooks';
 import { colors, fonts } from '@/theme';
 
 export default function TabsLayout() {
   const { t } = useTranslation();
+  const supportReplies = useUnreadSupportReplies();
+  const badge = supportReplies.count ? String(supportReplies.count) : undefined;
 
   return (
     <Tabs
@@ -53,6 +56,21 @@ export default function TabsLayout() {
         options={{
           title: t('tabs.income'),
           tabBarIcon: ({ color, size }) => <Ionicons name="cash-outline" color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          title: t('tabs.messages'),
+          tabBarBadge: badge,
+          tabBarBadgeStyle: { backgroundColor: colors.accent, color: colors.textInverse },
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline'}
+              color={color}
+              size={size}
+            />
+          ),
         }}
       />
       <Tabs.Screen

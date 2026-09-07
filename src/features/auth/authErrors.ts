@@ -7,6 +7,13 @@ function text(error: unknown) {
   };
 }
 
+export function authErrorDetail(error: unknown): string {
+  if (!error || typeof error !== 'object') return '';
+  const message = 'message' in error ? String(error.message) : '';
+  const code = 'code' in error ? String(error.code) : '';
+  return [code, message].filter(Boolean).join(' · ');
+}
+
 export function authErrorKey(error: unknown, fallback: 'login' | 'register'): string {
   const { code, message } = text(error);
   if (code === 'not_configured' || message === 'not_configured') return 'auth.notConfigured';

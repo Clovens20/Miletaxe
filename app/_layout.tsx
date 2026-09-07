@@ -21,6 +21,7 @@ function Gate() {
     if (isLoading) return;
     const group = segments[0];
     const inLegal = group === 'legal';
+    const inAuthReset = group === 'auth';
     const inAdmin = group === 'admin';
     const inEmployes = group === 'employes';
     const onWebRoot = Platform.OS === 'web' && group === undefined;
@@ -31,20 +32,20 @@ function Gate() {
     }
 
     if (!session) {
-      if (group !== '(auth)' && !inLegal && !inAdmin && !inEmployes && !onWebRoot) {
+      if (group !== '(auth)' && !inLegal && !inAuthReset && !inAdmin && !inEmployes && !onWebRoot) {
         router.replace('/(auth)/login');
       }
       return;
     }
 
-    if (inAdmin || inEmployes || onWebRoot) return;
+    if (inAdmin || inEmployes || inAuthReset || onWebRoot) return;
 
     if (!profile?.onboarding_completed_at && !isStaff && !isAgent) {
       if (group !== '(onboarding)' && !inLegal) router.replace('/(onboarding)');
       return;
     }
 
-    if (group !== '(app)' && !inLegal) {
+    if (group !== '(app)' && group !== '(onboarding)' && !inLegal) {
       router.replace('/(app)/(tabs)');
     }
   }, [configured, isAgent, isLoading, isStaff, preview, profile?.onboarding_completed_at, router, segments, session]);
@@ -56,6 +57,7 @@ function Gate() {
       <Stack.Screen name="(onboarding)" />
       <Stack.Screen name="(app)" />
       <Stack.Screen name="legal" />
+      <Stack.Screen name="auth" />
       <Stack.Screen name="admin" />
       <Stack.Screen name="employes" />
     </Stack>

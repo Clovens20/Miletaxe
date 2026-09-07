@@ -23,6 +23,7 @@ export type SupportInboxRow = {
   topic_id: string | null;
   last_message_at: string;
   created_at: string;
+  last_message?: string | null;
 };
 
 export type SupportThread = {
@@ -32,6 +33,8 @@ export type SupportThread = {
   assigned_agent_id: string | null;
   topic_id: string | null;
   last_message_at: string;
+  last_message?: string | null;
+  last_author_role?: SupportAuthorRole | null;
 };
 
 export type SupportMessage = {
@@ -49,4 +52,7 @@ export type SupportAgentRow = {
   full_name: string | null;
   phone: string | null;
   created_at: string;
+  last_sign_in_at?: string | null;
+  banned_until?: string | null;
+  must_change_password?: boolean | null;
 };

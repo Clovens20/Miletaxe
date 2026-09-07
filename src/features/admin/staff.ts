@@ -19,5 +19,6 @@ export function isSupportUser(user: User | null | undefined): boolean {
 }
 
 export function mustChangePassword(user: User | null | undefined): boolean {
-  return user?.app_metadata?.must_change_password === true;
+  const flag = user?.app_metadata?.must_change_password;
+  return flag === true || flag === 'true' || flag === 1;
 }

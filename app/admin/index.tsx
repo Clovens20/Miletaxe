@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useRouter, type Href } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
@@ -110,13 +111,20 @@ function AdminLogin({
 
 function AdminDashboard() {
   const { t } = useTranslation();
+  const router = useRouter();
   const stats = useAdminStats();
+  const users = stats.data?.users;
 
   return (
     <Screen title={t('admin.dashboard')} subtitle={t('admin.statsHint')} scroll home={false} back={false}>
       {stats.isError ? <Text style={styles.error}>{t('admin.loadFailed')}</Text> : null}
+      <Button
+        label={t('admin.viewUsers', { count: users ?? '—' })}
+        loading={stats.isLoading}
+        onPress={() => router.push('/admin/users' as Href)}
+      />
       <View style={styles.grid}>
-        <StatCard label={t('admin.usersCount')} value={stats.data?.users} />
+        <StatCard label={t('admin.usersCount')} value={users} />
         <StatCard label={t('admin.vehiclesCount')} value={stats.data?.vehicles} />
         <StatCard label={t('admin.receiptsCount')} value={stats.data?.receipts} />
         <StatCard label={t('admin.expensesCount')} value={stats.data?.expenses} />

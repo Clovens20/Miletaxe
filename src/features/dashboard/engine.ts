@@ -1,22 +1,37 @@
 import type { IntegritySeverity } from '@/types/domain';
 
-export function completenessScore(findings: Array<{ severity: IntegritySeverity }>): {
+export function dossierCompleteness(input: {
+  hasVehicle: boolean;
+  hasOpeningOdometer: boolean;
+  hasActivity: boolean;
+  findings: Array<{ severity: IntegritySeverity }>;
+}): {
   score: number;
+  checkDone: number;
+  checkTotal: number;
   blocking: number;
   warning: number;
   info: number;
   total: number;
 } {
-  const blocking = findings.filter((row) => row.severity === 'blocking').length;
-  const warning = findings.filter((row) => row.severity === 'warning').length;
-  const info = findings.filter((row) => row.severity === 'info').length;
-  const score = Math.max(0, Math.min(100, 100 - blocking * 20 - warning * 10 - info * 4));
-  return { score, blocking, warning, info, total: findings.length };
+  const blocking = input.findings.filter((row) => row.severity === 'blocking').length;
+  const warning = input.findings.filter((row) => row.severity === 'warning').length;
+  const info = input.findings.filter((row) => row.severity === 'info').length;
+  const checks = [
+    input.hasVehicle,
+    input.hasVehicle && input.hasOpeningOdometer,
+    input.hasActivity,
+    blocking === 0 && warning === 0,
+  ];
+  const checkDone = checks.filter(Boolean).length;
+  const checkTotal = checks.length;
+  const score = Math.round((checkDone / checkTotal) * 100);
+  return { score, checkDone, checkTotal, blocking, warning, info, total: input.findings.length };
 }
 
 export function completenessTone(score: number, blocking: number): 'ok' | 'warn' | 'danger' {
   if (blocking > 0 || score < 50) return 'danger';
-  if (score < 85) return 'warn';
+  if (score < 100) return 'warn';
   return 'ok';
 }
 

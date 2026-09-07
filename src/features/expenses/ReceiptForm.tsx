@@ -18,12 +18,14 @@ export function ReceiptFormFields({
   vehicles,
   locale,
   compact,
+  dateHint,
 }: {
   control: Control<ReceiptReviewValues>;
   categories: ExpenseCategoryRecord[];
   vehicles: Vehicle[];
   locale: SupportedLocale;
   compact?: boolean;
+  dateHint?: string;
 }) {
   const { t } = useTranslation();
 
@@ -46,9 +48,11 @@ export function ReceiptFormFields({
         name="incurred_on"
         render={({ field: { onChange, value }, fieldState }) => (
           <TextField
-            label={t('expenses.date')}
+            label={dateHint ? t('expenses.pastDate') : t('expenses.date')}
+            hint={dateHint}
             value={value}
             onChangeText={onChange}
+            placeholder={dateHint ? t('expenses.datePlaceholder') : undefined}
             error={fieldState.error ? t(fieldState.error.message ?? 'validation.date') : undefined}
           />
         )}

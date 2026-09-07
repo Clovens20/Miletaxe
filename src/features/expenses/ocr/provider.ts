@@ -26,6 +26,7 @@ export type ReceiptDraft = {
   storagePath: string;
   receiptId: string | null;
   extraction: ReceiptExtraction;
+  catchUp?: boolean;
 };
 
 export interface ReceiptOcrProvider {

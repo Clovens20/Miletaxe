@@ -7,7 +7,12 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/TextField';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { changePasswordSchema, type ChangePasswordValues } from '@/lib/validation/schemas';
+import {
+  changePasswordSchema,
+  recoveryPasswordSchema,
+  type ChangePasswordValues,
+  type RecoveryPasswordValues,
+} from '@/lib/validation/schemas';
 import { colors, type } from '@/theme';
 
 function isWrongPassword(error: unknown) {
@@ -18,6 +23,77 @@ function isWrongPassword(error: unknown) {
 }
 
 export function PasswordForm({ onDone, forced }: { onDone?: () => void; forced?: boolean }) {
+  const { mustChangePassword } = useAuth();
+  if (forced || mustChangePassword) return <ForcedPasswordFields onDone={onDone} />;
+  return <RegularPasswordFields onDone={onDone} />;
+}
+
+function ForcedPasswordFields({ onDone }: { onDone?: () => void }) {
+  const { t } = useTranslation();
+  const { changePassword, signOut } = useAuth();
+  const [formError, setFormError] = useState<string | null>(null);
+  const [ok, setOk] = useState(false);
+  const { control, handleSubmit, formState, reset } = useForm<RecoveryPasswordValues>({
+    resolver: zodResolver(recoveryPasswordSchema),
+    defaultValues: { newPassword: '', confirmPassword: '' },
+  });
+
+  const onSubmit = handleSubmit(async (values) => {
+    setFormError(null);
+    setOk(false);
+    try {
+      await changePassword(values.newPassword);
+      reset();
+      setOk(true);
+      onDone?.();
+    } catch {
+      setFormError(t('auth.changePasswordFailed'));
+    }
+  });
+
+  return (
+    <>
+      <Text style={styles.subtitle}>{t('auth.mustChangePasswordHint')}</Text>
+      <Controller
+        control={control}
+        name="newPassword"
+        render={({ field: { onChange, value }, fieldState }) => (
+          <TextField
+            label={t('auth.newPassword')}
+            hint={t('auth.passwordHint')}
+            password
+            textContentType="newPassword"
+            autoComplete="new-password"
+            value={value}
+            onChangeText={onChange}
+            error={fieldState.error ? t(fieldState.error.message ?? 'validation.required') : undefined}
+          />
+        )}
+      />
+      <Controller
+        control={control}
+        name="confirmPassword"
+        render={({ field: { onChange, value }, fieldState }) => (
+          <TextField
+            label={t('auth.confirmPassword')}
+            password
+            textContentType="newPassword"
+            autoComplete="new-password"
+            value={value}
+            onChangeText={onChange}
+            error={fieldState.error ? t(fieldState.error.message ?? 'validation.required') : undefined}
+          />
+        )}
+      />
+      {formError ? <Text style={styles.error}>{formError}</Text> : null}
+      {ok ? <Text style={styles.ok}>{t('auth.passwordChangedBody')}</Text> : null}
+      <Button label={t('auth.changePasswordAction')} loading={formState.isSubmitting} onPress={onSubmit} />
+      <Button label={t('settings.signOut')} variant="ghost" onPress={() => void signOut()} />
+    </>
+  );
+}
+
+function RegularPasswordFields({ onDone }: { onDone?: () => void }) {
   const { t } = useTranslation();
   const { changePassword } = useAuth();
   const [formError, setFormError] = useState<string | null>(null);
@@ -31,7 +107,7 @@ export function PasswordForm({ onDone, forced }: { onDone?: () => void; forced?:
     setFormError(null);
     setOk(false);
     try {
-      await changePassword(values.currentPassword, values.newPassword);
+      await changePassword(values.newPassword, values.currentPassword);
       reset();
       setOk(true);
       onDone?.();
@@ -42,7 +118,7 @@ export function PasswordForm({ onDone, forced }: { onDone?: () => void; forced?:
 
   return (
     <>
-      <Text style={styles.subtitle}>{forced ? t('auth.mustChangePasswordHint') : t('auth.changePasswordSubtitle')}</Text>
+      <Text style={styles.subtitle}>{t('auth.changePasswordSubtitle')}</Text>
       <Controller
         control={control}
         name="currentPassword"

@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { DisclaimerBanner } from '@/components/ui/DisclaimerBanner';
 import { Screen } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
-import { authErrorKey } from '@/features/auth/authErrors';
+import { authErrorDetail, authErrorKey } from '@/features/auth/authErrors';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { loginSchema, type LoginValues } from '@/lib/validation/schemas';
 import { colors, space, type } from '@/theme';
@@ -30,7 +30,8 @@ export default function LoginScreen() {
     try {
       await signIn(values.email, values.password);
     } catch (error) {
-      setFormError(t(authErrorKey(error, 'login')));
+      const detail = authErrorDetail(error);
+      setFormError(detail ? `${t(authErrorKey(error, 'login'))}\n${detail}` : t(authErrorKey(error, 'login')));
     }
   });
 

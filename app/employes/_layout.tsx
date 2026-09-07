@@ -3,18 +3,24 @@ import { Platform, StyleSheet, Text, View } from 'react-native';
 import { Slot, usePathname, useRouter, type Href } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
+import { DeskLangToggle } from '@/components/desk/DeskLangToggle';
 import { DeskNav } from '@/components/desk/DeskNav';
 import { Screen } from '@/components/ui/Screen';
 import { PasswordForm } from '@/features/auth/PasswordForm';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { SupportRealtime } from '@/features/support/hooks';
+import { SupportRealtime, useSupportInbox } from '@/features/support/hooks';
 import { colors, space, type } from '@/theme';
 
 export default function EmployesLayout() {
   const { t } = useTranslation();
   const router = useRouter();
   const pathname = usePathname();
-  const { isLoading, session, isAgent, mustChangePassword, signOut } = useAuth();
+  const { isLoading, session, isAgent, mustChangePassword, signOut, profile, user } = useAuth();
+  const inbox = useSupportInbox(Boolean(session && isAgent));
+  const openCount = (inbox.data ?? []).filter((row) => row.status === 'open').length;
+  const mineCount = (inbox.data ?? []).filter(
+    (row) => row.status === 'claimed' && row.assigned_agent_id === user?.id,
+  ).length;
 
   useEffect(() => {
     if (Platform.OS !== 'web') {
@@ -52,10 +58,16 @@ export default function EmployesLayout() {
   const nav = session && isAgent ? (
     <DeskNav
       brand={t('support.deskTitle')}
-      leaveLabel={t('admin.signOut')}
+      meta={profile?.full_name || user?.email || undefined}
+      extra={<DeskLangToggle />}
+      leaveLabel={t('settings.signOut')}
       onLeave={() => void signOut()}
       links={[
-        { href: '/employes', label: t('support.inbox'), active: pathname === '/employes' },
+        {
+          href: '/employes',
+          label: openCount || mineCount ? `${t('support.inbox')} (${openCount + mineCount})` : t('support.inbox'),
+          active: pathname === '/employes' || pathname.startsWith('/employes/thread'),
+        },
         { href: '/employes/topics', label: t('support.topics'), active: pathname.startsWith('/employes/topics') },
         {
           href: '/employes/password',

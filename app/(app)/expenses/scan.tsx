@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Image, StyleSheet, Text } from 'react-native';
-import { useRouter } from 'expo-router';
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/Button';
@@ -16,6 +16,8 @@ import { captureReceiptImage, pickReceiptImage } from '@/lib/media/pickImage';
 import { colors, radius, type } from '@/theme';
 
 export default function ScanReceiptScreen() {
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
+  const catchUp = mode === 'past';
   const { t } = useTranslation();
   const router = useRouter();
   const { user } = useAuth();
@@ -62,8 +64,9 @@ export default function ScanReceiptScreen() {
         storagePath: receipt.storage_path,
         receiptId: receipt.id,
         extraction: { ...extraction, requires_confirmation: true },
+        catchUp,
       });
-      router.replace('/(app)/expenses/review');
+      router.replace((catchUp ? '/(app)/expenses/review?mode=past' : '/(app)/expenses/review') as Href);
     } catch {
       setStatus('ocrFailed');
     } finally {
@@ -72,14 +75,18 @@ export default function ScanReceiptScreen() {
   };
 
   return (
-    <Screen title={t('expenses.scanTitle')} subtitle={t('expenses.scanSubtitle')} scroll>
+    <Screen
+      title={catchUp ? t('expenses.scanPastTitle') : t('expenses.scanTitle')}
+      subtitle={catchUp ? t('expenses.scanPastSubtitle') : t('expenses.scanSubtitle')}
+      scroll
+    >
       {host}
       {photo ? <Image source={{ uri: photo }} style={styles.photo} /> : null}
       <Button
-        label={t('expenses.takePhoto')}
+        label={catchUp ? t('expenses.uploadPhoto') : t('expenses.takePhoto')}
         loading={busy}
         onPress={async () => {
-          const uri = await captureReceiptImage();
+          const uri = catchUp ? await pickReceiptImage() : await captureReceiptImage();
           if (uri) {
             setPhoto(uri);
             await analyze(uri);
@@ -87,11 +94,11 @@ export default function ScanReceiptScreen() {
         }}
       />
       <Button
-        label={t('expenses.uploadPhoto')}
+        label={catchUp ? t('expenses.takePhoto') : t('expenses.uploadPhoto')}
         variant="secondary"
         loading={busy}
         onPress={async () => {
-          const uri = await pickReceiptImage();
+          const uri = catchUp ? await captureReceiptImage() : await pickReceiptImage();
           if (uri) {
             setPhoto(uri);
             await analyze(uri);

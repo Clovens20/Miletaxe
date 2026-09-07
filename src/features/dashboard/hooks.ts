@@ -3,12 +3,12 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { useExpenses, useReceipts } from '@/features/expenses/hooks';
 import { useIncome } from '@/features/income/hooks';
 import { useIntegrityFindings } from '@/features/integrity/engine';
-import { groupDailyMileage } from '@/features/mileage/engine';
+import { consecutiveValidReadings, groupDailyMileage } from '@/features/mileage/engine';
 import { useMileageDashboard, useOdometerReadings } from '@/features/mileage/hooks';
 import { currentTaxYear, useTaxYears } from '@/features/tax-config/hooks';
 import { useVehicles } from '@/features/vehicles/hooks';
 import type { CurrencyCode, DistanceUnit } from '@/types/domain';
-import { completenessScore, completenessTone, dateOfTimestamp, inDateRange } from './engine';
+import { completenessTone, dateOfTimestamp, dossierCompleteness, inDateRange } from './engine';
 
 export function useHomeDashboard() {
   const { profile } = useAuth();
@@ -60,7 +60,22 @@ export function useHomeDashboard() {
   const todayIncomeCount = (income.data ?? []).filter((row) => row.received_on === today).length;
   const todayReceiptCount = keptReceipts.filter((row) => dateOfTimestamp(row.captured_at) === today).length;
 
-  const completeness = completenessScore(findings.data ?? []);
+  const hasVehicles = Boolean(vehicles.data?.length);
+  const hasOpeningOdometer =
+    hasVehicles &&
+    (vehicles.data ?? []).every((vehicle) =>
+      Boolean(consecutiveValidReadings((readings.data ?? []).filter((row) => row.vehicle_id === vehicle.id)).length),
+    );
+  const hasActivity =
+    Boolean((readings.data ?? []).length) ||
+    Boolean((expenses.data ?? []).length) ||
+    Boolean((income.data ?? []).length);
+  const completeness = dossierCompleteness({
+    hasVehicle: hasVehicles,
+    hasOpeningOdometer,
+    hasActivity,
+    findings: findings.data ?? [],
+  });
 
   return {
     isLoading:
@@ -69,7 +84,8 @@ export function useHomeDashboard() {
       expenses.isLoading ||
       income.isLoading ||
       receipts.isLoading ||
-      findings.isLoading,
+      findings.isLoading ||
+      findings.isPending,
     taxYear,
     unit,
     currency,
@@ -87,6 +103,6 @@ export function useHomeDashboard() {
     findings: findings.data ?? [],
     completeness,
     tone: completenessTone(completeness.score, completeness.blocking),
-    hasVehicles: Boolean(vehicles.data?.length),
+    hasVehicles,
   };
 }

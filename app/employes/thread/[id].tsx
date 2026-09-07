@@ -12,7 +12,7 @@ export default function EmployesThreadScreen() {
   const locale = i18n.language === 'en' ? 'en' : 'fr';
 
   return (
-    <Screen title={t('support.conversation')} scroll home={false}>
+    <Screen title={t('support.conversation')} subtitle={t('support.conversationHint')} scroll home={false}>
       {isAgent && id ? (
         <ConversationPanel threadId={id} role="agent" locale={locale} agentId={user?.id} showDeskActions />
       ) : null}

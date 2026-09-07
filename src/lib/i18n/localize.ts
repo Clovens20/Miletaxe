@@ -6,7 +6,8 @@ export function localize(
   fallback = '',
 ): string {
   if (!value) return fallback;
-  return value[locale] || value.fr || value.en || fallback;
+  const picked = value[locale] || value.fr || value.en || fallback;
+  return typeof picked === 'string' ? picked : fallback;
 }
 
 export function intlLocale(language: SupportedLocale, countryCode?: string | null): string {

@@ -34,7 +34,7 @@ export default function EmployesHomeScreen() {
     return (
       <Screen title={t('support.deskTitle')} scroll home={false} back={false}>
         <Text style={styles.error}>{t('support.notDesk')}</Text>
-        <Button label={t('admin.signOut')} variant="danger" onPress={() => void signOut()} />
+        <Button label={t('settings.signOut')} variant="danger" onPress={() => void signOut()} />
       </Screen>
     );
   }
@@ -48,7 +48,8 @@ export default function EmployesHomeScreen() {
   return (
     <Screen title={t('support.inbox')} subtitle={t('support.inboxHint')} scroll home={false} back={false}>
       <InboxList
-        filter={(row) => row.status === 'open' || row.status === 'claimed'}
+        variant="agent"
+        agentId={session.user.id}
         onOpen={(id) => router.push(`/employes/thread/${id}` as Href)}
       />
     </Screen>

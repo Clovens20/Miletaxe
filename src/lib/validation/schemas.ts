@@ -50,6 +50,18 @@ export const changePasswordSchema = z
     path: ['newPassword'],
   });
 
+export const recoveryPasswordSchema = z
+  .object({
+    newPassword: z.string().min(8, 'validation.minPassword'),
+    confirmPassword: z.string().min(1, 'validation.required'),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'validation.passwordMatch',
+    path: ['confirmPassword'],
+  });
+
+export type RecoveryPasswordValues = z.infer<typeof recoveryPasswordSchema>;
+
 export const vehicleSchema = z.object({
   nickname: z.string().trim().min(1, 'validation.required'),
   make: z.string().trim().min(1, 'validation.required'),

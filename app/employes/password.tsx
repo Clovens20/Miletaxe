@@ -6,9 +6,15 @@ import { useAuth } from '@/features/auth/AuthProvider';
 
 export default function EmployesPasswordScreen() {
   const { t } = useTranslation();
-  const { isAgent } = useAuth();
+  const { isAgent, mustChangePassword } = useAuth();
   return (
-    <Screen title={t('auth.changePasswordTitle')} scroll home={false} back={false}>
+    <Screen
+      title={mustChangePassword ? t('auth.mustChangePassword') : t('auth.changePasswordTitle')}
+      subtitle={mustChangePassword ? t('auth.mustChangePasswordHint') : t('auth.changePasswordSubtitle')}
+      scroll
+      home={false}
+      back={false}
+    >
       {isAgent ? <PasswordForm /> : null}
     </Screen>
   );

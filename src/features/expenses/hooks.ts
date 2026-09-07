@@ -289,7 +289,7 @@ export function useReceiptOcr() {
 }
 
 export type FinalizeExpenseInput = {
-  receipt_id: string;
+  receipt_id?: string | null;
   vendor_name: string;
   amount: number;
   subtotal?: number | null;
@@ -319,7 +319,7 @@ export function useFinalizeExpense() {
         id: await newId(),
         user_id: user.id,
         vehicle_id: input.vehicle_id || null,
-        receipt_id: input.receipt_id,
+        receipt_id: input.receipt_id ?? null,
         category_id: input.category_id,
         vendor_name: input.vendor_name,
         subtotal: input.subtotal ?? null,
@@ -344,23 +344,27 @@ export function useFinalizeExpense() {
         await updateLocal((state) => ({
           ...state,
           expenses: [row, ...state.expenses],
-          receipts: state.receipts.map((item) =>
-            (item as { id: string }).id === input.receipt_id
-              ? { ...item, review_status: 'reviewed', reviewed_at: now }
-              : item,
-          ),
+          receipts: input.receipt_id
+            ? state.receipts.map((item) =>
+                (item as { id: string }).id === input.receipt_id
+                  ? { ...item, review_status: 'reviewed', reviewed_at: now }
+                  : item,
+              )
+            : state.receipts,
         }));
       } else {
         const { id: _id, ...insertable } = row;
         const { data, error } = await getSupabase().from('expenses').insert(insertable).select('*').single();
         if (error) throw error;
         row.id = (data as { id: string }).id;
-        const { error: receiptError } = await getSupabase()
-          .from('receipts')
-          .update({ review_status: 'reviewed', reviewed_at: now })
-          .eq('id', input.receipt_id)
-          .eq('user_id', user.id);
-        if (receiptError) throw receiptError;
+        if (input.receipt_id) {
+          const { error: receiptError } = await getSupabase()
+            .from('receipts')
+            .update({ review_status: 'reviewed', reviewed_at: now })
+            .eq('id', input.receipt_id)
+            .eq('user_id', user.id);
+          if (receiptError) throw receiptError;
+        }
       }
 
       const diffs = extractionDiffs(input.extracted, {

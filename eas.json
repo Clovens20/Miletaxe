@@ -1,44 +1,93 @@
 {
+
   "cli": {
+
     "version": ">= 16.17.0",
+
     "appVersionSource": "remote"
+
   },
+
   "build": {
+
     "development": {
+
       "developmentClient": true,
+
       "distribution": "internal",
+
       "env": {
+
         "EXPO_PUBLIC_UI_PREVIEW": "false",
-        "EXPO_PUBLIC_SUPABASE_URL": "https://ztjjmdsyvrcnptcqoylu.supabase.co"
+
+        "EXPO_PUBLIC_SUPABASE_URL": "https://ztjjmdsyvrcnptcqoylu.supabase.co",
+
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp0amptZHN5dnJjbnB0Y3FveWx1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5NzU3OTQsImV4cCI6MjEwMzU1MTc5NH0.qxCpTBoizmr4MkNU0-AlY6fAm7Oo0Qbm5q19n5pXnp8"
+
       }
+
     },
+
     "internal": {
+
       "distribution": "internal",
+
       "android": {
+
         "buildType": "apk"
+
       },
+
       "env": {
+
         "EXPO_PUBLIC_UI_PREVIEW": "false",
-        "EXPO_PUBLIC_SUPABASE_URL": "https://ztjjmdsyvrcnptcqoylu.supabase.co"
+
+        "EXPO_PUBLIC_SUPABASE_URL": "https://ztjjmdsyvrcnptcqoylu.supabase.co",
+
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp0amptZHN5dnJjbnB0Y3FveWx1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5NzU3OTQsImV4cCI6MjEwMzU1MTc5NH0.qxCpTBoizmr4MkNU0-AlY6fAm7Oo0Qbm5q19n5pXnp8"
+
       }
+
     },
+
     "production": {
+
       "autoIncrement": true,
+
       "android": {
+
         "buildType": "app-bundle"
+
       },
+
       "env": {
+
         "EXPO_PUBLIC_UI_PREVIEW": "false",
-        "EXPO_PUBLIC_SUPABASE_URL": "https://ztjjmdsyvrcnptcqoylu.supabase.co"
+
+        "EXPO_PUBLIC_SUPABASE_URL": "https://ztjjmdsyvrcnptcqoylu.supabase.co",
+
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp0amptZHN5dnJjbnB0Y3FveWx1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5NzU3OTQsImV4cCI6MjEwMzU1MTc5NH0.qxCpTBoizmr4MkNU0-AlY6fAm7Oo0Qbm5q19n5pXnp8"
+
       }
+
     }
+
   },
+
   "submit": {
+
     "production": {
+
       "android": {
+
         "track": "internal",
+
         "releaseStatus": "draft"
+
       }
+
     }
+
   }
+
 }

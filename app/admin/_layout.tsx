@@ -47,7 +47,7 @@ export default function AdminLayout() {
           label: t('support.techInbox'),
           active: pathname.startsWith('/admin/inbox') || pathname.startsWith('/admin/thread'),
         },
-        { href: '/admin/team', label: t('admin.team'), active: pathname.startsWith('/admin/team') },
+        { href: '/admin/team', label: t('admin.employees'), active: pathname.startsWith('/admin/team') },
         { href: '/admin/topics', label: t('support.topics'), active: pathname.startsWith('/admin/topics') },
         { href: '/admin/users', label: t('admin.users'), active: pathname.startsWith('/admin/users') },
         { href: '/admin/catalog', label: t('admin.catalog'), active: pathname.startsWith('/admin/catalog') },

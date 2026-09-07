@@ -7,12 +7,14 @@ import { ListRow } from '@/components/ui/ListRow';
 import { Screen } from '@/components/ui/Screen';
 import { useOpenAssistantCount } from '@/features/assistant/hooks';
 import { useIntegrityFindings } from '@/features/integrity/engine';
+import { useUnreadSupportReplies } from '@/features/support/hooks';
 
 export default function MoreScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const findings = useIntegrityFindings();
   const assistant = useOpenAssistantCount();
+  const supportReplies = useUnreadSupportReplies();
   const count = findings.data?.length ?? 0;
 
   return (
@@ -48,6 +50,7 @@ export default function MoreScreen() {
         <ListRow
           icon="chatbubble-ellipses-outline"
           title={t('more.support')}
+          right={supportReplies.count ? String(supportReplies.count) : undefined}
           onPress={() => router.push('/(app)/support' as Href)}
         />
         <ListRow

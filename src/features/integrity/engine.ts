@@ -30,6 +30,15 @@ export function useIntegrityFindings() {
   const income = useIncome();
   const categories = useExpenseCategories(profile?.country_code);
 
+  const sourcesReady =
+    rules.isFetched &&
+    vehicles.isFetched &&
+    readings.isFetched &&
+    expenses.isFetched &&
+    receipts.isFetched &&
+    income.isFetched &&
+    (categories.isFetched || !profile?.country_code);
+
   return useQuery({
     queryKey: [
       'integrity',
@@ -42,7 +51,7 @@ export function useIntegrityFindings() {
       income.data,
       categories.data,
     ],
-    enabled: Boolean(user?.id && rules.data),
+    enabled: Boolean(user?.id && sourcesReady && rules.data),
     queryFn: () => {
       const findings: IntegrityFinding[] = [];
       const ruleMap = Object.fromEntries((rules.data ?? []).map((rule) => [rule.code, rule]));

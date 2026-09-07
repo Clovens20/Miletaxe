@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { DisclaimerBanner } from '@/components/ui/DisclaimerBanner';
 import { Screen } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
-import { authErrorKey } from '@/features/auth/authErrors';
+import { authErrorDetail, authErrorKey } from '@/features/auth/authErrors';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { registerSchema, type RegisterValues } from '@/lib/validation/schemas';
 import { colors, radius, space, type } from '@/theme';
@@ -32,7 +32,8 @@ export default function RegisterScreen() {
       const result = await signUp(values.email, values.password);
       if (result.needsEmailConfirmation) setCheckEmail(true);
     } catch (error) {
-      setFormError(t(authErrorKey(error, 'register')));
+      const detail = authErrorDetail(error);
+      setFormError(detail ? `${t(authErrorKey(error, 'register'))}\n${detail}` : t(authErrorKey(error, 'register')));
     }
   });
 

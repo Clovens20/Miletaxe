@@ -24,7 +24,7 @@ import type { SupportedLocale } from '@/types/domain';
 import { colors, radius, type } from '@/theme';
 
 export default function ReviewReceiptScreen() {
-  const { receiptId: queryReceiptId } = useLocalSearchParams<{ receiptId?: string }>();
+  const { receiptId: queryReceiptId, mode } = useLocalSearchParams<{ receiptId?: string; mode?: string }>();
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const { user, profile } = useAuth();
@@ -40,9 +40,11 @@ export default function ReviewReceiptScreen() {
   const finalize = useFinalizeExpense();
   const discard = useDiscardReceipt();
   const [photoUrl, setPhotoUrl] = useState<string | null>(draft?.photoUri ?? null);
+  const [dateError, setDateError] = useState<string | null>(null);
   const canonical = useMemo(() => canonicalCategories(categories.data ?? []), [categories.data]);
   const extraction = draft?.extraction ?? receiptQuery.data?.ocr_payload ?? null;
   const receiptId = draft?.receiptId ?? receiptQuery.data?.id ?? null;
+  const catchUp = mode === 'past' || Boolean(draft?.catchUp);
 
   useEffect(() => {
     if (draft?.photoUri) {
@@ -62,8 +64,9 @@ export default function ReviewReceiptScreen() {
       storagePath: receiptQuery.data.storage_path,
       receiptId: receiptQuery.data.id,
       extraction: receiptQuery.data.ocr_payload ?? { confidence: 0, provider: 'none', requires_confirmation: true },
+      catchUp,
     });
-  }, [draft, photoUrl, receiptQuery.data]);
+  }, [catchUp, draft, photoUrl, receiptQuery.data]);
 
   const defaults = useMemo(
     () =>
@@ -72,8 +75,9 @@ export default function ReviewReceiptScreen() {
         categories: canonical,
         currency: profile?.default_currency ?? 'CAD',
         today: todayIso(),
+        emptyDate: catchUp,
       }),
-    [canonical, extraction, profile?.default_currency],
+    [canonical, catchUp, extraction, profile?.default_currency],
   );
 
   const { control, handleSubmit, watch, formState, reset } = useForm<ReceiptReviewValues>({
@@ -107,6 +111,11 @@ export default function ReviewReceiptScreen() {
   const save = handleSubmit(async (values) => {
     const amount = parseDecimal(values.amount);
     if (amount == null || !receiptId) return;
+    if (catchUp && values.incurred_on > todayIso()) {
+      setDateError(t('validation.dateNotFuture'));
+      return;
+    }
+    setDateError(null);
     await finalize.mutateAsync({
       receipt_id: receiptId,
       vendor_name: values.vendor_name,
@@ -127,19 +136,26 @@ export default function ReviewReceiptScreen() {
       extracted: extraction,
     });
     clearReceiptDraft();
-    router.replace('/(app)/(tabs)/expenses');
+    router.replace(catchUp ? '/(app)/expenses/past?added=1' : '/(app)/(tabs)/expenses');
   });
 
   if (!draft && !receiptQuery.data) {
     return (
       <Screen title={t('expenses.reviewTitle')}>
-        <Button label={t('expenses.takePhoto')} onPress={() => router.replace('/(app)/expenses/scan')} />
+        <Button
+          label={t('expenses.takePhoto')}
+          onPress={() => router.replace(catchUp ? '/(app)/expenses/scan?mode=past' : '/(app)/expenses/scan')}
+        />
       </Screen>
     );
   }
 
   return (
-    <Screen title={t('expenses.reviewTitle')} subtitle={t('expenses.reviewSubtitle')} scroll>
+    <Screen
+      title={t('expenses.reviewTitle')}
+      subtitle={catchUp ? t('expenses.pastLead') : t('expenses.reviewSubtitle')}
+      scroll
+    >
       {photoUrl ? <Image source={{ uri: photoUrl }} style={styles.photo} /> : null}
       <Text style={styles.hint}>{t('expenses.originalKept')}</Text>
       <Card>
@@ -153,12 +169,14 @@ export default function ReviewReceiptScreen() {
       </Card>
       <WarningBanner tone="info" title={t('expenses.suggestionOnly')} body={t('expenses.suggestionBody')} />
       {extractedChanged ? <WarningBanner tone="info" title={t('expenses.extractedChanged')} /> : null}
+      {dateError ? <WarningBanner tone="danger" title={dateError} /> : null}
       <ReceiptFormFields
         control={control}
         categories={canonical}
         vehicles={vehicles.data ?? []}
         locale={locale}
         compact
+        dateHint={catchUp ? t('expenses.pastDateHint') : undefined}
       />
       <Button
         label={t('expenses.confirmSave')}
@@ -171,7 +189,7 @@ export default function ReviewReceiptScreen() {
         onPress={async () => {
           if (receiptId) await discard.mutateAsync(receiptId);
           clearReceiptDraft();
-          router.replace('/(app)/(tabs)/expenses');
+          router.replace(catchUp ? '/(app)/expenses/past' : '/(app)/(tabs)/expenses');
         }}
       />
     </Screen>

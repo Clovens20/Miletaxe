@@ -638,6 +638,9 @@ export type Database = {
           full_name: string | null;
           phone: string | null;
           created_at: string;
+          last_sign_in_at: string | null;
+          banned_until: string | null;
+          must_change_password: boolean;
         }[];
       };
     };

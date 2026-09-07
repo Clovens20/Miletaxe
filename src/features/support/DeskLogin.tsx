@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
+import { Link } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
 
+import { DeskLangToggle } from '@/components/desk/DeskLangToggle';
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
@@ -81,6 +83,12 @@ export function DeskLogin({
       />
       {formError ? <Text style={styles.error}>{formError}</Text> : null}
       <Button label={t('auth.login')} loading={formState.isSubmitting} onPress={onSubmit} />
+      <Link href="/(auth)/forgot-password" asChild>
+        <Pressable>
+          <Text style={styles.link}>{t('auth.forgotLink')}</Text>
+        </Pressable>
+      </Link>
+      <DeskLangToggle />
     </Screen>
   );
 }
@@ -89,5 +97,9 @@ const styles = StyleSheet.create({
   error: {
     ...type.caption,
     color: colors.danger,
+  },
+  link: {
+    ...type.captionMedium,
+    color: colors.primary,
   },
 });

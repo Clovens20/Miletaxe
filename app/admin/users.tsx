@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Screen } from '@/components/ui/Screen';
-import { useAdminDeleteUser, useAdminUsers } from '@/features/admin/hooks';
+import { useAdminDeleteUser, useAdminStats, useAdminUsers } from '@/features/admin/hooks';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { colors, space, type } from '@/theme';
 
@@ -12,6 +12,7 @@ export default function AdminUsersScreen() {
   const { t } = useTranslation();
   const { user, isStaff } = useAuth();
   const list = useAdminUsers();
+  const stats = useAdminStats();
   const remove = useAdminDeleteUser();
 
   if (!isStaff) {
@@ -41,8 +42,16 @@ export default function AdminUsersScreen() {
     });
   };
 
+  const count = stats.data?.users ?? list.data?.length ?? 0;
+
   return (
-    <Screen title={t('admin.users')} scroll home={false} back={false}>
+    <Screen
+      title={t('admin.users')}
+      subtitle={stats.isLoading && list.isLoading ? t('common.loading') : t('admin.usersSubtitle', { count })}
+      scroll
+      home={false}
+      back={false}
+    >
       {list.isError ? <Text style={styles.error}>{t('admin.loadFailed')}</Text> : null}
       {!list.data?.length && !list.isLoading ? <Text style={styles.muted}>{t('admin.emptyUsers')}</Text> : null}
       {list.data?.map((row) => (

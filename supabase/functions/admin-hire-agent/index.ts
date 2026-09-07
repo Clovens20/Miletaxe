@@ -47,21 +47,98 @@ Deno.serve(async (req) => {
     return json({ error: 'invalid_body' }, 400);
   }
 
+  const allowed = ['hire', 'revoke', 'suspend', 'unsuspend', 'reset_password', 'list'];
+  if (!allowed.includes(action)) return json({ error: 'invalid_action' }, 400);
+
+  if (action === 'list') {
+    const admin = createClient(supabaseUrl, serviceKey);
+    const agents = [];
+    for (let page = 1; page <= 20; page += 1) {
+      const { data } = await admin.auth.admin.listUsers({ page, perPage: 200 });
+      const users = data?.users ?? [];
+      for (const row of users) {
+        if (row.app_metadata?.role !== 'agent') continue;
+        const flag = row.app_metadata?.must_change_password;
+        const extra = row as { banned_until?: string | null };
+        agents.push({
+          id: row.id,
+          email: row.email ?? null,
+          full_name: typeof row.user_metadata?.full_name === 'string' ? row.user_metadata.full_name : null,
+          phone: typeof row.user_metadata?.phone === 'string' ? row.user_metadata.phone : null,
+          created_at: row.created_at,
+          last_sign_in_at: row.last_sign_in_at ?? null,
+          banned_until: extra.banned_until ?? null,
+          must_change_password: flag === true || flag === 'true' || flag === 1,
+        });
+      }
+      if (users.length < 200) break;
+    }
+    const ids = agents.map((row) => row.id);
+    if (ids.length) {
+      const { data: profiles } = await admin.from('profiles').select('id, full_name, phone').in('id', ids);
+      const byId = new Map((profiles ?? []).map((row) => [row.id, row]));
+      for (const agent of agents) {
+        const profile = byId.get(agent.id);
+        if (profile?.full_name) agent.full_name = profile.full_name;
+        if (profile?.phone) agent.phone = profile.phone;
+      }
+    }
+    agents.sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+    return json({ ok: true, agents });
+  }
+
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: 'invalid_email' }, 400);
-  if (action !== 'hire' && action !== 'revoke') return json({ error: 'invalid_action' }, 400);
   if (action === 'hire' && fullName.length < 2) return json({ error: 'invalid_name' }, 400);
 
   const admin = createClient(supabaseUrl, serviceKey);
   const existing = await findUserByEmail(admin, email);
 
-  if (action === 'revoke') {
+  if (action === 'revoke' || action === 'suspend' || action === 'unsuspend' || action === 'reset_password') {
     if (!existing) return json({ error: 'not_found' }, 404);
     if (existing.app_metadata?.role === 'admin') return json({ error: 'cannot_revoke_admin' }, 400);
-    const { error } = await admin.auth.admin.updateUserById(existing.id, {
-      app_metadata: { ...existing.app_metadata, role: null, must_change_password: null },
+  }
+
+  if (action === 'revoke') {
+    const { error } = await admin.auth.admin.updateUserById(existing!.id, {
+      app_metadata: { ...existing!.app_metadata, role: null, must_change_password: null },
+      ban_duration: 'none',
     });
     if (error) return json({ error: 'update_failed' }, 500);
     return json({ ok: true, revoked: true });
+  }
+
+  if (action === 'suspend') {
+    const { error } = await admin.auth.admin.updateUserById(existing!.id, { ban_duration: '876000h' });
+    if (error) return json({ error: 'update_failed' }, 500);
+    return json({ ok: true, suspended: true });
+  }
+
+  if (action === 'unsuspend') {
+    const { error } = await admin.auth.admin.updateUserById(existing!.id, { ban_duration: 'none' });
+    if (error) return json({ error: 'update_failed' }, 500);
+    return json({ ok: true, unsuspended: true });
+  }
+
+  if (action === 'reset_password') {
+    const origin = (req.headers.get('origin') ?? Deno.env.get('EMPLOYE_APP_URL') ?? '').replace(/\/$/, '');
+    const redirectTo = `${origin || 'https://miletaxe.com'}/auth/reset`;
+    const { data, error } = await admin.auth.admin.generateLink({
+      type: 'recovery',
+      email,
+      options: { redirectTo },
+    });
+    if (error || !data?.properties?.action_link) return json({ error: 'reset_failed' }, 500);
+    const emailed = await sendResetEmail({
+      email,
+      fullName: (existing!.user_metadata?.full_name as string) || email,
+      resetUrl: data.properties.action_link,
+    });
+    return json({
+      ok: true,
+      reset: true,
+      emailed,
+      recoveryLink: emailed ? undefined : data.properties.action_link,
+    });
   }
 
   const password = randomPassword();
@@ -141,6 +218,33 @@ async function sendHireEmail(input: { email: string; fullName: string; password:
     }),
   });
   return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function sendResetEmail(input: { email: string; fullName: string; resetUrl: string }) {
+  const key = Deno.env.get('RESEND_API_KEY') ?? '';
+  const from = Deno.env.get('RESEND_FROM') ?? 'MileTax <support@miletaxe.com>';
+  if (!key) return false;
+  try {
+    const html = `
+      <p>Bonjour ${escapeHtml(input.fullName)},</p>
+      <p>Un administrateur MileTax a demandé la réinitialisation de votre mot de passe employé.</p>
+      <p><a href="${escapeHtml(input.resetUrl)}">Choisir un nouveau mot de passe</a></p>
+      <p>Si vous n’êtes pas à l’origine de cette demande, ignorez ce courriel.</p>
+    `;
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from,
+        to: [input.email],
+        subject: 'Réinitialisation de votre mot de passe employé MileTax',
+        html,
+      }),
+    });
+    return response.ok;
   } catch {
     return false;
   }

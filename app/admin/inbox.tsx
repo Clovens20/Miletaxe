@@ -14,7 +14,7 @@ export default function AdminInboxScreen() {
     <Screen title={t('support.techInbox')} subtitle={t('support.techInboxHint')} scroll home={false} back={false}>
       {isStaff ? (
         <InboxList
-          filter={(row) => row.status === 'escalated' || row.status === 'claimed'}
+          filter={(row) => row.status === 'escalated'}
           onOpen={(id) => router.push(`/admin/thread/${id}` as Href)}
         />
       ) : null}

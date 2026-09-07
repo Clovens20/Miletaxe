@@ -91,7 +91,7 @@ export function getSupabase(): SupabaseClient {
         storage: Platform.OS === 'web' ? webAuthStorage : nativeAuthStorage,
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: false,
+        detectSessionInUrl: Platform.OS === 'web',
       },
     });
   }

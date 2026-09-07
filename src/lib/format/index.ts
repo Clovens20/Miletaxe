@@ -89,12 +89,17 @@ export function formatDateTime(
   countryCode?: string | null,
 ): string {
   const date = new Date(iso);
-  return new Intl.DateTimeFormat(intlLocale(language, countryCode), {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date);
+  if (Number.isNaN(date.getTime())) return '';
+  try {
+    return new Intl.DateTimeFormat(intlLocale(language, countryCode), {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  } catch {
+    return iso.slice(0, 16).replace('T', ' ');
+  }
 }
 
 export function addDays(isoDate: string, days: number): string {

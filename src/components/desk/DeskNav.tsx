@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 
@@ -11,11 +12,15 @@ export type DeskNavLink = {
 
 export function DeskNav({
   brand,
+  meta,
+  extra,
   links,
   leaveLabel,
   onLeave,
 }: {
   brand: string;
+  meta?: string;
+  extra?: ReactNode;
   links: DeskNavLink[];
   leaveLabel: string;
   onLeave: () => void;
@@ -25,6 +30,8 @@ export function DeskNav({
   return (
     <View style={styles.side}>
       <Text style={styles.brand}>{brand}</Text>
+      {meta ? <Text style={styles.meta}>{meta}</Text> : null}
+      {extra}
       <View style={styles.links}>
         {links.map((link) => (
           <Pressable
@@ -56,6 +63,11 @@ const styles = StyleSheet.create({
   brand: {
     ...type.bodyMedium,
     color: colors.text,
+    paddingHorizontal: space.sm,
+  },
+  meta: {
+    ...type.caption,
+    color: colors.textSecondary,
     paddingHorizontal: space.sm,
   },
   links: {
