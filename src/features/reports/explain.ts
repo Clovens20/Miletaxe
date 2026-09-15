@@ -1,6 +1,7 @@
 import { convertDistance } from '@/lib/format';
 import type { AccountantPackageSummary, PackageExpenseLine, PackageIncomeLine } from '@/features/reports/package';
-import type { DistanceUnit } from '@/types/domain';
+import type { DistanceUnit, LocalizedString, SupportedLocale } from '@/types/domain';
+import { localize } from '@/lib/i18n/localize';
 
 export function lineRef(prefix: string, index: number): string {
   return `${prefix}-${String(index + 1).padStart(3, '0')}`;
@@ -120,4 +121,87 @@ export function incomeKindKey(kind: PackageIncomeLine['source_kind']): string {
   if (kind === 'invoice') return 'income.kindInvoice';
   if (kind === 'cash') return 'income.kindCash';
   return 'income.kindOther';
+}
+
+export const HEADLINE_EXPENSE_CODES = ['fuel', 'vehicle_rental', 'repairs'] as const;
+
+export type HeadlineExpenseCode = (typeof HEADLINE_EXPENSE_CODES)[number];
+
+export type HeadlineExpenseRow = {
+  code: string;
+  label: string;
+  total: number;
+  count: number;
+  featured: boolean;
+};
+
+export function inferExpenseCategoryCode(row: {
+  category_code?: string | null;
+  code?: string | null;
+  category_i18n: LocalizedString | null;
+}): string {
+  const direct = row.category_code || row.code;
+  if (direct) return direct;
+  const haystack = `${row.category_i18n?.fr ?? ''} ${row.category_i18n?.en ?? ''}`.toLowerCase();
+  if (haystack.includes('carburant') || haystack.includes('essence') || haystack.includes('fuel')) return 'fuel';
+  if (haystack.includes('location') || haystack.includes('rental')) return 'vehicle_rental';
+  if (haystack.includes('répar') || haystack.includes('repar') || haystack.includes('repair')) return 'repairs';
+  if (haystack.includes('entretien') || haystack.includes('vidange') || haystack.includes('maintenance')) {
+    return 'maintenance';
+  }
+  return '';
+}
+
+export function headlineExpenseLabel(code: HeadlineExpenseCode, locale: SupportedLocale): string {
+  const labels: Record<HeadlineExpenseCode, LocalizedString> = {
+    fuel: { fr: 'Essence', en: 'Fuel' },
+    vehicle_rental: { fr: 'Location de véhicule', en: 'Vehicle rental' },
+    repairs: { fr: 'Réparations', en: 'Repairs' },
+  };
+  return localize(labels[code], locale);
+}
+
+export function headlineExpenseRows(
+  summary: AccountantPackageSummary,
+  locale: SupportedLocale,
+  uncategorized: string,
+): HeadlineExpenseRow[] {
+  const buckets = new Map<string, { total: number; count: number; label: LocalizedString | null }>();
+  const add = (code: string, amount: number, label: LocalizedString | null) => {
+    const key = code || 'other';
+    const current = buckets.get(key) ?? { total: 0, count: 0, label };
+    current.total += amount;
+    current.count += 1;
+    if (!current.label) current.label = label;
+    buckets.set(key, current);
+  };
+
+  for (const row of completeExpenseLines(summary)) {
+    add(inferExpenseCategoryCode(row), row.amount, row.category_i18n);
+  }
+  for (const row of summary.rental_days ?? []) {
+    add('vehicle_rental', row.amount, { fr: 'Location de véhicule', en: 'Vehicle rental' });
+  }
+
+  const featured = HEADLINE_EXPENSE_CODES.map((code) => {
+    const match = buckets.get(code);
+    return {
+      code,
+      label: headlineExpenseLabel(code, locale),
+      total: match?.total ?? 0,
+      count: match?.count ?? 0,
+      featured: true,
+    };
+  });
+  const rest = [...buckets.entries()]
+    .filter(([code]) => !HEADLINE_EXPENSE_CODES.includes(code as HeadlineExpenseCode))
+    .map(([code, row]) => ({
+      code,
+      label: localize(row.label, locale, uncategorized),
+      total: row.total,
+      count: row.count,
+      featured: false,
+    }))
+    .sort((a, b) => b.total - a.total);
+  return [...featured, ...rest];
 }

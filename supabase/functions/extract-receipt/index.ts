@@ -141,6 +141,9 @@ function fromParsed(text: string, provider: string, extra?: unknown): Extraction
     incurred_time: parsed.incurred_time,
     total: parsed.total,
     currency: parsed.currency,
+    fuel_quantity: (parsed as { fuel_quantity?: number }).fuel_quantity,
+    price_per_unit: (parsed as { price_per_unit?: number }).price_per_unit,
+    category_hint: (parsed as { category_hint?: string }).category_hint,
     confidence: parsed.confidence,
     provider,
     requires_confirmation: true,
@@ -188,11 +191,12 @@ async function extractWithOpenAi(apiKey: string, imageBase64: string): Promise<E
             {
               type: 'text',
               text: [
-                'Read only these fields from the receipt. Return JSON only:',
-                '{"merchant_name": string|null, "total": number|null, "incurred_on": "YYYY-MM-DD"|null,',
-                '"incurred_time": "HH:MM"|null, "currency": "CAD"|"USD"|null, "raw_text": string}.',
-                'Skip taxes, litres, category and payment method.',
-                'Unreadable fields are null.',
+                'Read the receipt. Return JSON only:',
+                '{"merchant_name": string|null, "total": number|null, "subtotal": number|null, "tax_amount": number|null,',
+                '"incurred_on": "YYYY-MM-DD"|null, "incurred_time": "HH:MM"|null, "currency": "CAD"|"USD"|null,',
+                '"fuel_quantity": number|null, "price_per_unit": number|null, "category_hint": "fuel"|"maintenance"|"parking"|"tolls"|"office"|"phone"|"other"|null,',
+                '"payment_method": "cash"|"credit"|"debit"|null, "reference_number": string|null, "raw_text": string}.',
+                'Prefer Canadian fuel stations, TPS/TVQ taxes, litres and $/L when present. Unreadable fields are null.',
               ].join(' '),
             },
             {
@@ -219,9 +223,16 @@ async function extractWithOpenAi(apiKey: string, imageBase64: string): Promise<E
     ...fromText,
     merchant_name: parsed.merchant_name || fromText.merchant_name,
     total: total ?? fromText.total,
+    subtotal: typeof parsed.subtotal === 'number' ? parsed.subtotal : fromText.subtotal,
+    tax_amount: typeof parsed.tax_amount === 'number' ? parsed.tax_amount : fromText.tax_amount,
     incurred_on: parsed.incurred_on || fromText.incurred_on,
     incurred_time: parsed.incurred_time || fromText.incurred_time,
     currency: parsed.currency === 'USD' || parsed.currency === 'CAD' ? parsed.currency : fromText.currency,
+    fuel_quantity: typeof parsed.fuel_quantity === 'number' ? parsed.fuel_quantity : fromText.fuel_quantity,
+    price_per_unit: typeof parsed.price_per_unit === 'number' ? parsed.price_per_unit : fromText.price_per_unit,
+    category_hint: parsed.category_hint || fromText.category_hint,
+    payment_method: parsed.payment_method || fromText.payment_method,
+    reference_number: parsed.reference_number || fromText.reference_number,
     provider: 'openai',
     confidence: Math.max(fromText.confidence, total != null ? 0.8 : 0),
   };
@@ -230,7 +241,7 @@ async function extractWithOpenAi(apiKey: string, imageBase64: string): Promise<E
 async function extractWithOcrSpace(apiKey: string, imageBase64: string): Promise<Extraction> {
   const body = new URLSearchParams({
     apikey: apiKey,
-    language: 'eng',
+    language: 'fre',
     isOverlayRequired: 'false',
     OCREngine: '2',
     scale: 'true',

@@ -6,12 +6,27 @@ import { loadLocal, newId, updateLocal } from '@/lib/local/store';
 import { rebuildLocalSegments } from '@/lib/local/segments';
 import { getSupabase, isLocalMode } from '@/lib/supabase/client';
 import type { TableRow } from '@/types/database';
-import type { DistanceUnit } from '@/types/domain';
+import type { DistanceUnit, OwnershipType, VehicleTrackingMode } from '@/types/domain';
 
 export type Vehicle = TableRow<'vehicles'> & {
   distance_unit: DistanceUnit;
   current_odometer: number | null;
+  tracking_mode: VehicleTrackingMode;
+  daily_rental_rate: number | null;
+  rental_vendor: string | null;
 };
+
+export function isRentalVehicle(vehicle: { tracking_mode?: string | null }) {
+  return vehicle.tracking_mode === 'rental_daily';
+}
+
+export function rentalVehiclesOf(list: Vehicle[] | undefined) {
+  return (list ?? []).filter(isRentalVehicle);
+}
+
+export function odometerVehiclesOf(list: Vehicle[] | undefined) {
+  return (list ?? []).filter((row) => !isRentalVehicle(row));
+}
 
 function withVehicleDefaults(row: Partial<Vehicle> & { nickname: string; user_id: string }): Vehicle {
   const now = new Date().toISOString();
@@ -26,6 +41,9 @@ function withVehicleDefaults(row: Partial<Vehicle> & { nickname: string; user_id
     vin: row.vin ?? null,
     fuel_type: row.fuel_type ?? null,
     ownership_type: row.ownership_type ?? null,
+    tracking_mode: row.tracking_mode ?? 'odometer',
+    daily_rental_rate: row.daily_rental_rate ?? null,
+    rental_vendor: row.rental_vendor ?? null,
     business_use_percent: row.business_use_percent ?? null,
     distance_unit: row.distance_unit ?? 'km',
     current_odometer: row.current_odometer ?? null,
@@ -45,7 +63,9 @@ export function useVehicles() {
     queryFn: async () => {
       if (isLocalMode()) {
         const local = await loadLocal();
-        return (local.vehicles as Vehicle[]).filter((row) => row.is_active !== false);
+        return (local.vehicles as Vehicle[])
+          .filter((row) => row.is_active !== false)
+          .map((row) => withVehicleDefaults(row));
       }
       const { data, error } = await getSupabase()
         .from('vehicles')
@@ -53,7 +73,7 @@ export function useVehicles() {
         .eq('user_id', user!.id)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data as Vehicle[];
+      return (data as Vehicle[]).map((row) => withVehicleDefaults(row));
     },
   });
 }
@@ -68,13 +88,17 @@ export function useVehicle(id?: string) {
 
 type CreateVehicleInput = {
   nickname: string;
-  make: string;
-  model: string;
-  year: number;
+  make?: string | null;
+  model?: string | null;
+  year?: number | null;
   distance_unit: DistanceUnit;
-  current_odometer: number;
+  current_odometer?: number | null;
   plate?: string | null;
   notes?: string | null;
+  tracking_mode?: VehicleTrackingMode;
+  ownership_type?: OwnershipType | null;
+  daily_rental_rate?: number | null;
+  rental_vendor?: string | null;
 };
 
 export function useCreateVehicle() {
@@ -83,17 +107,22 @@ export function useCreateVehicle() {
   return useMutation({
     mutationFn: async (input: CreateVehicleInput) => {
       if (!user) throw new Error('unauthenticated');
+      const trackingMode = input.tracking_mode ?? 'odometer';
       const payload = {
         user_id: user.id,
         nickname: input.nickname,
-        make: input.make,
-        model: input.model,
-        year: input.year,
+        make: input.make ?? null,
+        model: input.model ?? null,
+        year: input.year ?? null,
         distance_unit: input.distance_unit,
-        current_odometer: input.current_odometer,
+        current_odometer: trackingMode === 'rental_daily' ? null : (input.current_odometer ?? null),
         plate: input.plate ?? null,
         notes: input.notes ?? null,
         is_active: true,
+        tracking_mode: trackingMode,
+        ownership_type: input.ownership_type ?? (trackingMode === 'rental_daily' ? 'rented' : null),
+        daily_rental_rate: input.daily_rental_rate ?? null,
+        rental_vendor: input.rental_vendor ?? null,
       };
 
       let vehicle: Vehicle;
@@ -104,6 +133,10 @@ export function useCreateVehicle() {
         const { data, error } = await getSupabase().from('vehicles').insert(payload).select('*').single();
         if (error) throw error;
         vehicle = data as Vehicle;
+      }
+
+      if (trackingMode === 'rental_daily' || input.current_odometer == null) {
+        return vehicle;
       }
 
       const recorded_on = todayIso();
@@ -155,7 +188,9 @@ export function useUpdateVehicle() {
   const { user } = useAuth();
   const client = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { id: string } & Partial<CreateVehicleInput> & { is_active?: boolean }) => {
+    mutationFn: async (
+      input: { id: string } & Partial<CreateVehicleInput> & { is_active?: boolean },
+    ) => {
       if (!user) throw new Error('unauthenticated');
       const { id, ...patch } = input;
       if (isLocalMode()) {

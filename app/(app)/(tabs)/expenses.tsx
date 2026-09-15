@@ -11,8 +11,10 @@ import { Screen } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { FilterChips } from '@/features/expenses/FilterChips';
-import { canonicalCategories, filterExpenses, monthlySummary } from '@/features/expenses/engine';
+import { canonicalCategories, buildExpenseList, filterExpenseList, monthlySummary, rentalCategoryOf } from '@/features/expenses/engine';
 import { useExpenses, useReceipts } from '@/features/expenses/hooks';
+import { useRentalDays } from '@/features/rental/hooks';
+import { rentalVehiclesOf, useVehicles } from '@/features/vehicles/hooks';
 import { labelOf, useExpenseCategories } from '@/features/tax-config/hooks';
 import { formatDate, formatMoney, formatYearMonth, yearMonthNow } from '@/lib/format';
 import type { CurrencyCode, SupportedLocale } from '@/types/domain';
@@ -25,22 +27,39 @@ export default function ExpensesScreen() {
   const locale = (i18n.language === 'en' ? 'en' : 'fr') as SupportedLocale;
   const expenses = useExpenses();
   const receipts = useReceipts();
+  const rentalDays = useRentalDays();
+  const vehicles = useVehicles();
   const categories = useExpenseCategories(profile?.country_code);
   const canonical = useMemo(() => canonicalCategories(categories.data ?? []), [categories.data]);
+  const rentalCategory = rentalCategoryOf(canonical);
+  const rentalVehicle = rentalVehiclesOf(vehicles.data)[0];
   const currency = (profile?.default_currency ?? 'CAD') as CurrencyCode;
   const month = yearMonthNow();
   const [query, setQuery] = useState('');
   const [categoryId, setCategoryId] = useState('all');
-  const summary = useMemo(() => monthlySummary(expenses.data ?? [], month, canonical), [canonical, expenses.data, month]);
+  const summary = useMemo(
+    () => monthlySummary(expenses.data ?? [], month, canonical, rentalDays.data ?? []),
+    [canonical, expenses.data, month, rentalDays.data],
+  );
   const pending = (receipts.data ?? []).filter((row) => row.review_status === 'pending');
+  const rentalFilter = Boolean(rentalCategory && categoryId === rentalCategory.id);
   const filtered = useMemo(
     () =>
-      filterExpenses(expenses.data ?? [], {
-        query,
-        categoryId: categoryId === 'all' ? undefined : categoryId,
-        month,
-      }).slice(0, 12),
-    [categoryId, expenses.data, month, query],
+      filterExpenseList(
+        buildExpenseList(
+          expenses.data ?? [],
+          rentalDays.data ?? [],
+          rentalCategory?.id ?? null,
+          rentalVehicle?.rental_vendor || rentalVehicle?.nickname || t('expenses.checkRental'),
+        ),
+        {
+          query,
+          categoryId: categoryId === 'all' ? undefined : categoryId,
+          month,
+        },
+        canonical,
+      ).slice(0, 12),
+    [canonical, categoryId, expenses.data, month, query, rentalCategory?.id, rentalDays.data, rentalVehicle, t],
   );
 
   return (
@@ -50,6 +69,7 @@ export default function ExpensesScreen() {
         value={formatMoney(summary.total, currency, locale, profile?.country_code)}
         hint={t('expenses.summaryCount', { count: summary.count })}
       />
+      <Button label={t('expenses.checkTitle')} onPress={() => router.push('/(app)/expenses/check' as Href)} />
       {pending.length ? (
         <View style={styles.pending}>
           <Text style={styles.section}>{t('expenses.pendingTitle')}</Text>
@@ -73,20 +93,36 @@ export default function ExpensesScreen() {
           ...canonical.map((row) => ({ value: row.id, label: labelOf(row, locale) })),
         ]}
       />
-      {!filtered.length ? <EmptyState icon="receipt-outline" title={t('expenses.empty')} /> : null}
+      {!filtered.length ? (
+        <EmptyState
+          icon={rentalFilter ? 'key-outline' : 'receipt-outline'}
+          title={rentalFilter ? t('expenses.rentalEmpty') : t('expenses.empty')}
+        />
+      ) : null}
       {filtered.map((row) => {
         const category = canonical.find((item) => item.id === row.category_id);
+        const categoryLabel =
+          category ? labelOf(category, locale) : row.kind === 'rental' ? t('expenses.checkRental') : t('expenses.noCategory');
         return (
           <ListRow
-            key={row.id}
-            icon="receipt-outline"
-            title={row.vendor_name || t('expenses.merchant')}
-            subtitle={`${category ? labelOf(category, locale) : t('expenses.noCategory')} · ${formatDate(row.incurred_on, locale, profile?.country_code)}`}
+            key={`${row.kind}-${row.id}`}
+            icon={row.kind === 'rental' ? 'key-outline' : 'receipt-outline'}
+            title={row.vendor_name || (row.kind === 'rental' ? t('expenses.checkRental') : t('expenses.merchant'))}
+            subtitle={`${categoryLabel} · ${formatDate(row.incurred_on, locale, profile?.country_code)}`}
             right={formatMoney(Number(row.amount), row.currency || currency, locale, profile?.country_code)}
-            onPress={() => router.push(`/(app)/expenses/${row.id}` as Href)}
+            onPress={() =>
+              router.push(
+                (row.kind === 'rental'
+                  ? `/(app)/rental/daily?date=${row.incurred_on}`
+                  : `/(app)/expenses/${row.id}`) as Href,
+              )
+            }
           />
         );
       })}
+      {rentalFilter ? (
+        <Button label={t('rental.logDay')} onPress={() => router.push('/(app)/rental/daily' as Href)} />
+      ) : null}
       <Button label={t('expenses.capture')} onPress={() => router.push('/(app)/expenses/scan')} />
       <Button
         label={t('expenses.pastTitle')}

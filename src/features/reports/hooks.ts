@@ -1,4 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { PRODUCT } from '@/lib/constants';
 import { getSupabase, isLocalMode } from '@/lib/supabase/client';
@@ -9,6 +12,7 @@ import { useDistanceSegments, useOdometerReadings } from '@/features/mileage/hoo
 import { useExpenses } from '@/features/expenses/hooks';
 import { useIncome } from '@/features/income/hooks';
 import { useIntegrityFindings } from '@/features/integrity/engine';
+import { useRentalDays } from '@/features/rental/hooks';
 import {
   currentTaxYear,
   useExpenseCategories,
@@ -16,6 +20,7 @@ import {
   useTaxYears,
 } from '@/features/tax-config/hooks';
 import { buildAccountantPackage, type AccountantPackageSummary } from '@/features/reports/package';
+import { downloadAccountantPackage, shareAccountantPackage } from '@/features/reports/share';
 import {
   preferredPeriodInput,
   profileReportingCadence,
@@ -23,7 +28,7 @@ import {
   type ReportPeriod,
 } from '@/features/reports/period';
 import type { TableRow } from '@/types/database';
-import type { ReportPeriodKind } from '@/types/domain';
+import type { ReportPeriodKind, SupportedLocale } from '@/types/domain';
 
 export type TaxReport = TableRow<'tax_reports'>;
 
@@ -78,6 +83,7 @@ export function useGenerateReport() {
   const segments = useDistanceSegments();
   const expenses = useExpenses();
   const income = useIncome();
+  const rentalDays = useRentalDays();
   const findings = useIntegrityFindings();
   const taxYear = currentTaxYear(years.data);
   const client = useQueryClient();
@@ -96,6 +102,7 @@ export function useGenerateReport() {
         segments: segments.data ?? [],
         expenses: expenses.data ?? [],
         income: income.data ?? [],
+        rentalDays: rentalDays.data ?? [],
         expenseCategories: expenseCategories.data ?? [],
         findings: findings.data ?? [],
       });
@@ -123,4 +130,47 @@ export function useGenerateReport() {
     },
     onSuccess: () => client.invalidateQueries({ queryKey: ['reports'] }),
   });
+}
+
+export function useAccountantPdfActions(
+  summary: AccountantPackageSummary | null | undefined,
+  locale: SupportedLocale,
+  country?: string | null,
+) {
+  const { t } = useTranslation();
+  const [busy, setBusy] = useState<'share' | 'download' | null>(null);
+
+  const share = async () => {
+    if (!summary) return;
+    setBusy('share');
+    try {
+      await shareAccountantPackage(summary, locale, country);
+    } catch {
+      Alert.alert(t('common.error'), t('reports.shareFailed'));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const download = async () => {
+    if (!summary) return;
+    setBusy('download');
+    try {
+      const result = await downloadAccountantPackage(summary, locale, country);
+      if (result === 'saved') {
+        Alert.alert(t('reports.downloadPdf'), t('reports.downloadOk'));
+      }
+    } catch {
+      Alert.alert(t('common.error'), t('reports.downloadFailed'));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return {
+    sharing: busy === 'share',
+    downloading: busy === 'download',
+    share,
+    download,
+  };
 }

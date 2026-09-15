@@ -9,8 +9,10 @@ import { Screen } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { FilterChips } from '@/features/expenses/FilterChips';
-import { canonicalCategories, filterExpenses, yearMonthOf } from '@/features/expenses/engine';
+import { canonicalCategories, buildExpenseList, filterExpenseList, rentalCategoryOf, yearMonthOf } from '@/features/expenses/engine';
 import { useExpenses } from '@/features/expenses/hooks';
+import { useRentalDays } from '@/features/rental/hooks';
+import { rentalVehiclesOf, useVehicles } from '@/features/vehicles/hooks';
 import { labelOf, useExpenseCategories } from '@/features/tax-config/hooks';
 import { formatDate, formatMoney, formatYearMonth, yearMonthNow } from '@/lib/format';
 import type { CurrencyCode, SupportedLocale } from '@/types/domain';
@@ -22,28 +24,47 @@ export default function ExpenseHistoryScreen() {
   const { profile } = useAuth();
   const locale = (i18n.language === 'en' ? 'en' : 'fr') as SupportedLocale;
   const expenses = useExpenses();
+  const rentalDays = useRentalDays();
+  const vehicles = useVehicles();
   const categories = useExpenseCategories(profile?.country_code);
   const canonical = useMemo(() => canonicalCategories(categories.data ?? []), [categories.data]);
+  const rentalCategory = rentalCategoryOf(canonical);
+  const rentalVehicle = rentalVehiclesOf(vehicles.data)[0];
   const currency = (profile?.default_currency ?? 'CAD') as CurrencyCode;
   const [query, setQuery] = useState('');
   const [categoryId, setCategoryId] = useState(params.categoryId ?? 'all');
   const [month, setMonth] = useState(params.month ?? 'all');
 
   const months = useMemo(() => {
-    const fromData = [...new Set((expenses.data ?? []).map((row) => yearMonthOf(row.incurred_on)))].sort().reverse();
+    const fromData = [
+      ...new Set([
+        ...(expenses.data ?? []).map((row) => yearMonthOf(row.incurred_on)),
+        ...(rentalDays.data ?? []).map((row) => yearMonthOf(row.work_date)),
+      ]),
+    ].sort().reverse();
     const current = yearMonthNow();
     return fromData.includes(current) ? fromData : [current, ...fromData];
-  }, [expenses.data]);
+  }, [expenses.data, rentalDays.data]);
 
+  const rentalFilter = Boolean(rentalCategory && categoryId === rentalCategory.id);
   const filtered = useMemo(
     () =>
-      filterExpenses(expenses.data ?? [], {
-        query,
-        categoryId: categoryId === 'all' ? undefined : categoryId,
-        month: month === 'all' ? undefined : month,
-        status: 'all',
-      }),
-    [categoryId, expenses.data, month, query],
+      filterExpenseList(
+        buildExpenseList(
+          expenses.data ?? [],
+          rentalDays.data ?? [],
+          rentalCategory?.id ?? null,
+          rentalVehicle?.rental_vendor || rentalVehicle?.nickname || t('expenses.checkRental'),
+        ),
+        {
+          query,
+          categoryId: categoryId === 'all' ? undefined : categoryId,
+          month: month === 'all' ? undefined : month,
+          status: 'all',
+        },
+        canonical,
+      ),
+    [canonical, categoryId, expenses.data, month, query, rentalCategory?.id, rentalDays.data, rentalVehicle, t],
   );
 
   return (
@@ -68,20 +89,36 @@ export default function ExpenseHistoryScreen() {
           ...canonical.map((row) => ({ value: row.id, label: labelOf(row, locale) })),
         ]}
       />
-      {!filtered.length ? <EmptyState icon="receipt-outline" title={t('expenses.historyEmpty')} /> : null}
+      {!filtered.length ? (
+        <EmptyState
+          icon={rentalFilter ? 'key-outline' : 'receipt-outline'}
+          title={rentalFilter ? t('expenses.rentalHistoryEmpty') : t('expenses.historyEmpty')}
+        />
+      ) : null}
       {filtered.map((row) => {
         const category = canonical.find((item) => item.id === row.category_id);
+        const categoryLabel =
+          category ? labelOf(category, locale) : row.kind === 'rental' ? t('expenses.checkRental') : t('expenses.noCategory');
         return (
           <ListRow
-            key={row.id}
-            icon="receipt-outline"
-            title={row.vendor_name || t('expenses.merchant')}
-            subtitle={`${category ? labelOf(category, locale) : t('expenses.noCategory')} · ${formatDate(row.incurred_on, locale, profile?.country_code)}`}
+            key={`${row.kind}-${row.id}`}
+            icon={row.kind === 'rental' ? 'key-outline' : 'receipt-outline'}
+            title={row.vendor_name || (row.kind === 'rental' ? t('expenses.checkRental') : t('expenses.merchant'))}
+            subtitle={`${categoryLabel} · ${formatDate(row.incurred_on, locale, profile?.country_code)}`}
             right={formatMoney(Number(row.amount), row.currency || currency, locale, profile?.country_code)}
-            onPress={() => router.push(`/(app)/expenses/${row.id}` as Href)}
+            onPress={() =>
+              router.push(
+                (row.kind === 'rental'
+                  ? `/(app)/rental/daily?date=${row.incurred_on}`
+                  : `/(app)/expenses/${row.id}`) as Href,
+              )
+            }
           />
         );
       })}
+      {rentalFilter ? (
+        <Button label={t('rental.logDay')} onPress={() => router.push('/(app)/rental/daily' as Href)} />
+      ) : null}
       <Button label={t('common.back')} variant="ghost" onPress={() => router.back()} />
     </Screen>
   );

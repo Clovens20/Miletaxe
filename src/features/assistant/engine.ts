@@ -78,6 +78,7 @@ function missingOdometer(input: AssistantAnalyzeInput): AssistantSignal[] {
   const weekAgo = addDays(input.today, -lookback);
   const out: AssistantSignal[] = [];
   for (const vehicle of input.vehicles) {
+    if (vehicle.tracking_mode === 'rental_daily') continue;
     const rows = input.readings.filter((row) => row.vehicle_id === vehicle.id);
     if (!rows.length) {
       const item = signal(input, 'missing_odometer_reading', {
@@ -388,6 +389,7 @@ function mileageGaps(input: AssistantAnalyzeInput): AssistantSignal[] {
   const highGap = numConfig(check?.config, 'high_gap_days', 90);
   const out: AssistantSignal[] = [];
   for (const vehicle of input.vehicles) {
+    if (vehicle.tracking_mode === 'rental_daily') continue;
     const ordered = input.readings
       .filter((row) => row.vehicle_id === vehicle.id && row.is_valid)
       .sort((a, b) => a.recorded_on.localeCompare(b.recorded_on));

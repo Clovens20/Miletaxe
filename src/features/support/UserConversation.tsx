@@ -10,7 +10,7 @@ import { formatDateTime } from '@/lib/format';
 import type { SupportedLocale } from '@/types/domain';
 import { colors, space, type } from '@/theme';
 
-import { useSendSupportMessage, useSupportMessages, useSupportThread } from './hooks';
+import { useMarkSupportThreadRead, useSendSupportMessage, useSupportMessages, useSupportThread } from './hooks';
 import type { SupportStatus } from './types';
 
 function statusTone(status: SupportStatus): 'warning' | 'info' | 'danger' | 'success' {
@@ -29,6 +29,7 @@ export function UserConversation({ threadId, locale }: { threadId: string; local
   const status = thread.data?.status;
   const last = (messages.data ?? []).at(-1);
   const lastFromStaff = Boolean(last && last.author_role !== 'user');
+  useMarkSupportThreadRead(thread.data ? threadId : undefined, last?.created_at ?? thread.data?.last_message_at);
 
   const onSend = async () => {
     const text = draft.trim();

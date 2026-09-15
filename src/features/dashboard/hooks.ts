@@ -5,8 +5,9 @@ import { useIncome } from '@/features/income/hooks';
 import { useIntegrityFindings } from '@/features/integrity/engine';
 import { consecutiveValidReadings, groupDailyMileage } from '@/features/mileage/engine';
 import { useMileageDashboard, useOdometerReadings } from '@/features/mileage/hooks';
+import { rentalTotals, useRentalDays } from '@/features/rental/hooks';
 import { currentTaxYear, useTaxYears } from '@/features/tax-config/hooks';
-import { useVehicles } from '@/features/vehicles/hooks';
+import { odometerVehiclesOf, rentalVehiclesOf, useVehicles } from '@/features/vehicles/hooks';
 import type { CurrencyCode, DistanceUnit } from '@/types/domain';
 import { completenessTone, dateOfTimestamp, dossierCompleteness, inDateRange } from './engine';
 
@@ -25,11 +26,12 @@ export function useHomeDashboard() {
   const receipts = useReceipts();
   const findings = useIntegrityFindings();
   const mileage = useMileageDashboard();
+  const rentalDays = useRentalDays();
 
   const yearStart = taxYear?.starts_on;
   const yearEnd = taxYear?.ends_on;
 
-  const vehiclesToday = (vehicles.data ?? []).map((vehicle) => {
+  const vehiclesToday = odometerVehiclesOf(vehicles.data).map((vehicle) => {
     const days = groupDailyMileage(readings.data ?? [], vehicle.id, vehicle.distance_unit ?? unit);
     const todayDay = days.find((row) => row.date === today);
     return {
@@ -46,9 +48,12 @@ export function useHomeDashboard() {
 
   const todayDistance = vehiclesToday.reduce((sum, row) => sum + (row.distance ?? 0), 0);
 
+  const yearRental = (rentalDays.data ?? [])
+    .filter((row) => inDateRange(row.work_date, yearStart, yearEnd))
+    .reduce((sum, row) => sum + Number(row.rental_amount), 0);
   const yearExpenses = (expenses.data ?? [])
     .filter((row) => row.status === 'complete' && inDateRange(row.incurred_on, yearStart, yearEnd))
-    .reduce((sum, row) => sum + Number(row.amount), 0);
+    .reduce((sum, row) => sum + Number(row.amount), 0) + yearRental;
   const yearIncome = (income.data ?? [])
     .filter((row) => inDateRange(row.received_on, yearStart, yearEnd))
     .reduce((sum, row) => sum + Number(row.amount), 0);
@@ -56,20 +61,28 @@ export function useHomeDashboard() {
   const keptReceipts = (receipts.data ?? []).filter((row) => row.review_status !== 'discarded');
   const receiptCount = keptReceipts.filter((row) => inDateRange(dateOfTimestamp(row.captured_at), yearStart, yearEnd)).length;
 
+  const rentalToday = rentalTotals(rentalDays.data, today);
   const todayExpenseCount = (expenses.data ?? []).filter((row) => row.incurred_on === today).length;
+  const todayExpenseAmount =
+    (expenses.data ?? [])
+      .filter((row) => row.incurred_on === today && row.status === 'complete')
+      .reduce((sum, row) => sum + Number(row.amount), 0) + rentalToday.todayAmount;
   const todayIncomeCount = (income.data ?? []).filter((row) => row.received_on === today).length;
   const todayReceiptCount = keptReceipts.filter((row) => dateOfTimestamp(row.captured_at) === today).length;
 
   const hasVehicles = Boolean(vehicles.data?.length);
+  const hasRentalVehicles = rentalVehiclesOf(vehicles.data).length > 0;
+  const hasOdometerVehicles = odometerVehiclesOf(vehicles.data).length > 0;
   const hasOpeningOdometer =
-    hasVehicles &&
-    (vehicles.data ?? []).every((vehicle) =>
+    !hasOdometerVehicles ||
+    odometerVehiclesOf(vehicles.data).every((vehicle) =>
       Boolean(consecutiveValidReadings((readings.data ?? []).filter((row) => row.vehicle_id === vehicle.id)).length),
     );
   const hasActivity =
     Boolean((readings.data ?? []).length) ||
     Boolean((expenses.data ?? []).length) ||
-    Boolean((income.data ?? []).length);
+    Boolean((income.data ?? []).length) ||
+    Boolean((rentalDays.data ?? []).length);
   const completeness = dossierCompleteness({
     hasVehicle: hasVehicles,
     hasOpeningOdometer,
@@ -85,7 +98,8 @@ export function useHomeDashboard() {
       income.isLoading ||
       receipts.isLoading ||
       findings.isLoading ||
-      findings.isPending,
+      findings.isPending ||
+      rentalDays.isLoading,
     taxYear,
     unit,
     currency,
@@ -97,6 +111,7 @@ export function useHomeDashboard() {
     yearIncome,
     receiptCount,
     todayExpenseCount,
+    todayExpenseAmount,
     todayIncomeCount,
     todayReceiptCount,
     vehiclesToday,
@@ -104,5 +119,10 @@ export function useHomeDashboard() {
     completeness,
     tone: completenessTone(completeness.score, completeness.blocking),
     hasVehicles,
+    hasRentalVehicles,
+    hasOdometerVehicles,
+    rentalTodayAmount: rentalToday.todayAmount,
+    rentalTodayLogged: rentalToday.todayLogged,
+    rentalMonthAmount: rentalToday.monthAmount,
   };
 }

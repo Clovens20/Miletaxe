@@ -32,6 +32,7 @@ export type LocalState = {
   assistant_runs: Record<string, unknown>[];
   assistant_recommendations: Record<string, unknown>[];
   assistant_review_events: Record<string, unknown>[];
+  rental_days: Record<string, unknown>[];
   preview_seed_version?: number;
 };
 
@@ -49,6 +50,7 @@ const empty = (): LocalState => ({
   assistant_runs: [],
   assistant_recommendations: [],
   assistant_review_events: [],
+  rental_days: [],
 });
 
 let memory: LocalState | null = null;
@@ -62,6 +64,7 @@ export async function loadLocal(): Promise<LocalState> {
   if (!memory.assistant_runs) memory.assistant_runs = [];
   if (!memory.assistant_recommendations) memory.assistant_recommendations = [];
   if (!memory.assistant_review_events) memory.assistant_review_events = [];
+  if (!memory.rental_days) memory.rental_days = [];
   return memory;
 }
 

@@ -83,7 +83,7 @@ export type AssistantReviewEvent = {
 
 export type AssistantAnalyzeInput = {
   today: string;
-  vehicles: Array<{ id: string; nickname: string }>;
+  vehicles: Array<{ id: string; nickname: string; tracking_mode?: string | null }>;
   readings: Array<{
     id: string;
     vehicle_id: string;

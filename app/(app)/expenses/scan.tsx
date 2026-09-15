@@ -6,11 +6,15 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { setReceiptDraft } from '@/features/expenses/draft';
+import { getReceiptDraft, setReceiptDraft } from '@/features/expenses/draft';
 import { useCreateReceipt, useReceiptOcr } from '@/features/expenses/hooks';
 import { ON_DEVICE_RECEIPT_OCR_HTML } from '@/features/expenses/ocr/onDeviceHtml';
 import { prepareReceiptImage } from '@/features/expenses/ocr/prepareImage';
-import { emptyReceiptExtraction, extractionFromReceiptText } from '@/features/expenses/ocr/provider';
+import {
+  emptyReceiptExtraction,
+  extractionFromReceiptText,
+  mergeReceiptExtractions,
+} from '@/features/expenses/ocr/provider';
 import { useOnDeviceOcr } from '@/features/mileage/ocr/OnDeviceOcrBridge';
 import { captureReceiptImage, pickReceiptImage } from '@/lib/media/pickImage';
 import { colors, radius, type } from '@/theme';
@@ -28,6 +32,10 @@ export default function ScanReceiptScreen() {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<'idle' | 'ocrBusy' | 'ocrFailed'>('idle');
 
+  const goReview = () => {
+    router.replace((catchUp ? '/(app)/expenses/review?mode=past' : '/(app)/expenses/review') as Href);
+  };
+
   const analyze = async (uri: string) => {
     if (!user) return;
     setBusy(true);
@@ -35,38 +43,57 @@ export default function ScanReceiptScreen() {
     try {
       const prepared = await prepareReceiptImage(uri);
       setPhoto(prepared.uri);
-      const receipt = await createReceipt.mutateAsync({
-        localUri: prepared.uri,
-        filename: prepared.uri.split('/').pop(),
-      });
 
-      let onDevice = emptyReceiptExtraction('on-device');
-      if (prepared.base64) {
+      const onDevicePromise = (async () => {
+        if (!prepared.base64) return emptyReceiptExtraction('on-device');
         try {
           const result = await recognize(prepared.base64);
-          onDevice = extractionFromReceiptText(result.text, {
+          return extractionFromReceiptText(result.text, {
             provider: 'on-device',
             engineConfidence: result.confidence,
           });
         } catch {
-          onDevice = emptyReceiptExtraction('on-device-failed');
+          return emptyReceiptExtraction('on-device-failed');
         }
-      }
+      })();
 
-      const extraction = await ocr.mutateAsync({
-        imageUri: prepared.uri,
-        storagePath: receipt.storage_path,
-        receiptId: receipt.id,
-        seedExtraction: onDevice,
+      const uploadPromise = createReceipt.mutateAsync({
+        localUri: prepared.uri,
+        filename: prepared.uri.split('/').pop(),
       });
+
+      const [receipt, onDevice] = await Promise.all([uploadPromise, onDevicePromise]);
       setReceiptDraft({
         photoUri: prepared.uri,
         storagePath: receipt.storage_path,
         receiptId: receipt.id,
-        extraction: { ...extraction, requires_confirmation: true },
+        extraction: { ...onDevice, requires_confirmation: true },
         catchUp,
+        refining: true,
       });
-      router.replace((catchUp ? '/(app)/expenses/review?mode=past' : '/(app)/expenses/review') as Href);
+      goReview();
+
+      void ocr
+        .mutateAsync({
+          imageUri: prepared.uri,
+          storagePath: receipt.storage_path,
+          receiptId: receipt.id,
+          seedExtraction: onDevice,
+        })
+        .then((edge) => {
+          const current = getReceiptDraft();
+          if (!current || current.receiptId !== receipt.id) return;
+          setReceiptDraft({
+            ...current,
+            extraction: { ...mergeReceiptExtractions(edge, current.extraction), requires_confirmation: true },
+            refining: false,
+          });
+        })
+        .catch(() => {
+          const current = getReceiptDraft();
+          if (!current || current.receiptId !== receipt.id) return;
+          setReceiptDraft({ ...current, refining: false });
+        });
     } catch {
       setStatus('ocrFailed');
     } finally {
@@ -104,6 +131,12 @@ export default function ScanReceiptScreen() {
             await analyze(uri);
           }
         }}
+      />
+      <Button
+        label={t('expenses.typeManually')}
+        variant="ghost"
+        disabled={busy}
+        onPress={() => router.push((catchUp ? '/(app)/expenses/manual?mode=past' : '/(app)/expenses/manual') as Href)}
       />
       <Text style={styles.hint}>{t('expenses.originalKept')}</Text>
       {status === 'ocrBusy' ? <Text style={styles.status}>{t('expenses.ocrPending')}</Text> : null}

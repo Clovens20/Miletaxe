@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ListRow } from '@/components/ui/ListRow';
 import { Screen } from '@/components/ui/Screen';
-import { useVehicles } from '@/features/vehicles/hooks';
+import { isRentalVehicle, useVehicles } from '@/features/vehicles/hooks';
 import { formatDistance } from '@/lib/format';
 import type { SupportedLocale } from '@/types/domain';
 import { useAuth } from '@/features/auth/AuthProvider';
@@ -30,9 +30,15 @@ export default function VehiclesScreen() {
             key={row.id}
             icon="car-outline"
             title={row.nickname}
-            subtitle={[row.year, row.make, row.model].filter(Boolean).join(' ')}
+            subtitle={
+              isRentalVehicle(row)
+                ? t('rental.modeRented')
+                : [row.year, row.make, row.model].filter(Boolean).join(' ')
+            }
             right={
-              row.current_odometer != null
+              isRentalVehicle(row)
+                ? undefined
+                : row.current_odometer != null
                 ? formatDistance(Number(row.current_odometer), row.distance_unit ?? 'km', locale, profile?.country_code)
                 : undefined
             }

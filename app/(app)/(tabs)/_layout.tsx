@@ -1,17 +1,25 @@
-import { Tabs } from 'expo-router';
+import { Tabs, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useUnreadSupportReplies } from '@/features/support/hooks';
 import { colors, fonts } from '@/theme';
 
+const TAB_BAR_CONTENT_HEIGHT = 56;
+
 export default function TabsLayout() {
   const { t } = useTranslation();
+  const pathname = usePathname();
+  const insets = useSafeAreaInsets();
   const supportReplies = useUnreadSupportReplies();
-  const badge = supportReplies.count ? String(supportReplies.count) : undefined;
+  const onMessages = pathname === '/messages' || pathname.endsWith('/messages');
+  const badge = !onMessages && supportReplies.count ? String(supportReplies.count) : undefined;
+  const bottomInset = Math.max(insets.bottom, 0);
 
   return (
     <Tabs
+      safeAreaInsets={{ bottom: bottomInset }}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
@@ -19,12 +27,16 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
-          height: 64,
+          height: TAB_BAR_CONTENT_HEIGHT + bottomInset,
+          paddingTop: 4,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 2,
         },
         tabBarLabelStyle: {
           fontFamily: fonts.medium,
-          fontSize: 12,
-          marginBottom: 6,
+          fontSize: 11,
+          marginBottom: 0,
         },
       }}
     >

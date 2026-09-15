@@ -12,6 +12,7 @@ export const CANONICAL_EXPENSE_CODES = [
   'office',
   'phone',
   'other',
+  'vehicle_rental',
 ] as const;
 
 export type CanonicalExpenseCode = (typeof CANONICAL_EXPENSE_CODES)[number];
@@ -76,6 +77,20 @@ export type ExpenseFilters = {
   categoryId?: string;
   month?: string;
   status?: ExpenseStatus | 'all';
+};
+
+export type ExpenseListKind = 'expense' | 'rental';
+
+export type ExpenseListItem = {
+  kind: ExpenseListKind;
+  id: string;
+  incurred_on: string;
+  amount: number;
+  currency: string | null;
+  vendor_name: string | null;
+  notes: string | null;
+  category_id: string | null;
+  status: ExpenseStatus;
 };
 
 export type CategoryTotal = {

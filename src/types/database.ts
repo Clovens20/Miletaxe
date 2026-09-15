@@ -16,6 +16,7 @@ import type {
   ReadingValidationStatus,
   RevisionSource,
   OwnershipType,
+  VehicleTrackingMode,
   ReportStatus,
   ReportingCadence,
 } from '@/types/domain';
@@ -225,6 +226,9 @@ export type Database = {
           vin: string | null;
           fuel_type: FuelType | string | null;
           ownership_type: OwnershipType | string | null;
+          tracking_mode: VehicleTrackingMode;
+          daily_rental_rate: number | null;
+          rental_vendor: string | null;
           business_use_percent: number | null;
           distance_unit: DistanceUnit;
           current_odometer: number | null;
@@ -239,6 +243,25 @@ export type Database = {
           nickname: string;
         };
         Update: Partial<Database['public']['Tables']['vehicles']['Row']>;
+      };
+      vehicle_rental_days: {
+        Row: {
+          id: string;
+          user_id: string;
+          vehicle_id: string;
+          work_date: string;
+          rental_amount: number;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database['public']['Tables']['vehicle_rental_days']['Row']> & {
+          user_id: string;
+          vehicle_id: string;
+          work_date: string;
+          rental_amount: number;
+        };
+        Update: Partial<Database['public']['Tables']['vehicle_rental_days']['Row']>;
       };
       odometer_readings: {
         Row: {
@@ -539,6 +562,7 @@ export type Database = {
           escalated_by: string | null;
           topic_id: string | null;
           last_message_at: string;
+          user_last_read_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -629,6 +653,10 @@ export type Database = {
           last_message_at: string;
           created_at: string;
         }[];
+      };
+      mark_support_thread_read: {
+        Args: { p_thread_id: string };
+        Returns: undefined;
       };
       admin_list_agents: {
         Args: Record<string, never>;

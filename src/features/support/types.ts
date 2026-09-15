@@ -33,6 +33,7 @@ export type SupportThread = {
   assigned_agent_id: string | null;
   topic_id: string | null;
   last_message_at: string;
+  user_last_read_at?: string | null;
   last_message?: string | null;
   last_author_role?: SupportAuthorRole | null;
 };

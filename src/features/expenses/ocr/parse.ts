@@ -2,8 +2,14 @@ export type ParsedReceipt = {
   merchant_name?: string;
   incurred_on?: string;
   incurred_time?: string;
+  subtotal?: number;
+  tax_amount?: number;
   total?: number;
   currency?: string;
+  category_hint?: string;
+  fuel_quantity?: number;
+  price_per_unit?: number;
+  payment_method?: string;
   confidence: number;
   raw_text: string;
 };
@@ -371,6 +377,52 @@ function parseCurrency(text: string): string | undefined {
   return undefined;
 }
 
+function parseTaxes(text: string): { tax?: number; subtotal?: number } {
+  let tax = 0;
+  let foundTax = false;
+  let subtotal: number | undefined;
+  for (const line of text.split('\n')) {
+    if (/\bsous[- ]?total|sub[- ]?total\b/i.test(line)) {
+      const last = moneyOnLine(line).filter((item) => item.decimals === 2).at(-1);
+      if (last && last.value > 0) subtotal = last.value;
+    }
+    if (!/\b(tps|tvq|gst|hst|pst|qst|tvh)\b/i.test(line)) continue;
+    if (/\b(num[eé]ro|#|gst\s*#|tvq\s*#|tps\s*#)\b/i.test(line)) continue;
+    const last = moneyOnLine(line).filter((item) => item.decimals === 2).at(-1);
+    if (last && last.value > 0 && last.value < 800) {
+      tax += last.value;
+      foundTax = true;
+    }
+  }
+  return {
+    tax: foundTax ? round2(tax) : undefined,
+    subtotal,
+  };
+}
+
+function parsePayment(text: string): string | undefined {
+  const folded = fold(text);
+  if (/\binterac\b|\bdebit\b|\bdebit\b/.test(folded) || /d[eé]bit/i.test(text)) return 'debit';
+  if (/\bvisa\b|\bmastercard\b|\bamex\b|\bcredit\b/.test(folded) || /cr[eé]dit/i.test(text)) return 'credit';
+  if (/\bcash\b|\bcomptant\b/.test(folded)) return 'cash';
+  return undefined;
+}
+
+const FUEL_MERCHANTS = /esso|shell|petro|ultramar|harnois|irving|husky|mobil|circle\s*k|couche|baktar|costco\s+gas|essence/i;
+const OFFICE_MERCHANTS = /bureau\s+en\s+gros|staples|best\s+buy/i;
+const MAINT_MERCHANTS = /canadian\s+tire|rona|home\s+depot/i;
+
+export function inferCategoryFromMerchant(merchant?: string | null, hasFuel = false): string | undefined {
+  if (hasFuel) return 'fuel';
+  if (!merchant) return undefined;
+  const value = merchant.toLowerCase();
+  if (FUEL_MERCHANTS.test(value)) return 'fuel';
+  if (OFFICE_MERCHANTS.test(value)) return 'office';
+  if (MAINT_MERCHANTS.test(value)) return 'maintenance';
+  if (/\buber\b|\blyft\b/.test(value)) return 'other';
+  return undefined;
+}
+
 /** Commerce, date, heure, total — uniquement ce qui est lisible. */
 export function parseReceiptFromText(text: string, engineConfidence = 0): ParsedReceipt {
   const raw_text = text.replace(/\r/g, '\n');
@@ -380,6 +432,10 @@ export function parseReceiptFromText(text: string, engineConfidence = 0): Parsed
   const date = parseDate(normalized);
   const time = parseTime(normalized);
   const currency = parseCurrency(normalized);
+  const fuel = parseFuel(normalized);
+  const taxes = parseTaxes(normalized);
+  const payment = parsePayment(normalized);
+  const category_hint = inferCategoryFromMerchant(merchant, Boolean(fuel.litres || fuel.price));
 
   let confidence = 0;
   if (total != null) confidence += 0.4;
@@ -395,6 +451,12 @@ export function parseReceiptFromText(text: string, engineConfidence = 0): Parsed
   if (time) result.incurred_time = time;
   if (total != null) result.total = total;
   if (currency) result.currency = currency;
+  if (taxes.subtotal != null) result.subtotal = taxes.subtotal;
+  if (taxes.tax != null) result.tax_amount = taxes.tax;
+  if (fuel.litres != null) result.fuel_quantity = fuel.litres;
+  if (fuel.price != null) result.price_per_unit = fuel.price;
+  if (payment) result.payment_method = payment;
+  if (category_hint) result.category_hint = category_hint;
   if (!hasReceiptValues(result)) result.confidence = 0;
   return result;
 }

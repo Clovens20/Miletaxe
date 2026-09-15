@@ -21,14 +21,29 @@ export default function MoreScreen() {
     <Screen title={t('more.title')} scroll back={false}>
       <Card>
         <ListRow
-          icon="car-outline"
-          title={t('more.vehicles')}
-          onPress={() => router.push('/(app)/vehicles')}
+          icon="eye-outline"
+          title={t('home.verifyExpenses')}
+          subtitle={t('home.verifyExpensesHint')}
+          onPress={() => router.push('/(app)/expenses/check' as Href)}
+        />
+        <ListRow
+          icon="time-outline"
+          title={t('home.addPastExpenses')}
+          subtitle={t('home.addPastExpensesHint')}
+          onPress={() => router.push('/(app)/expenses/past' as Href)}
         />
         <ListRow
           icon="document-text-outline"
-          title={t('more.reports')}
+          title={t('home.generatePackage')}
+          subtitle={t('home.generatePackageHint')}
           onPress={() => router.push('/(app)/reports')}
+        />
+      </Card>
+      <Card>
+        <ListRow
+          icon="car-outline"
+          title={t('more.vehicles')}
+          onPress={() => router.push('/(app)/vehicles')}
         />
         <ListRow
           icon="sparkles-outline"

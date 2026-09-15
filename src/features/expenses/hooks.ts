@@ -247,13 +247,22 @@ export function useReceiptOcr() {
       let extraction: ReceiptExtraction = input.seedExtraction ?? emptyReceiptExtraction('none');
       if (!isLocalMode() && (input.storagePath || input.receiptId)) {
         const provider = new EdgeFunctionReceiptOcrProvider(async ({ storagePath, receiptId }) => {
-          const { data, error } = await getSupabase().functions.invoke(name, {
-            body: { storage_path: storagePath, receipt_id: receiptId },
-          });
-          if (error || !data?.extraction) {
+          try {
+            const { data, error } = await Promise.race([
+              getSupabase().functions.invoke(name, {
+                body: { storage_path: storagePath, receipt_id: receiptId },
+              }),
+              new Promise<never>((_, reject) => {
+                setTimeout(() => reject(new Error('timeout')), 12_000);
+              }),
+            ]);
+            if (error || !data?.extraction) {
+              return { ...emptyReceiptExtraction('edge-failed'), raw: { error: String(error) } };
+            }
+            return normalizeReceiptExtraction(data.extraction, 'edge');
+          } catch (error) {
             return { ...emptyReceiptExtraction('edge-failed'), raw: { error: String(error) } };
           }
-          return normalizeReceiptExtraction(data.extraction, 'edge');
         });
         const edge = await provider.extract(input);
         extraction = mergeReceiptExtractions(edge, extraction);

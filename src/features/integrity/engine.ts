@@ -6,7 +6,8 @@ import { useOdometerReadings } from '@/features/mileage/hooks';
 import { useExpenses, useReceipts } from '@/features/expenses/hooks';
 import { useIncome } from '@/features/income/hooks';
 import { useExpenseCategories, useIntegrityRules } from '@/features/tax-config/hooks';
-import { useVehicles } from '@/features/vehicles/hooks';
+import { useRentalDays } from '@/features/rental/hooks';
+import { isRentalVehicle, useVehicles } from '@/features/vehicles/hooks';
 import { addDays, convertDistance, todayIso } from '@/lib/format';
 import type { IntegritySeverity, LocalizedString } from '@/types/domain';
 
@@ -25,6 +26,7 @@ export function useIntegrityFindings() {
   const rules = useIntegrityRules();
   const vehicles = useVehicles();
   const readings = useOdometerReadings();
+  const rentalDays = useRentalDays();
   const expenses = useExpenses();
   const receipts = useReceipts();
   const income = useIncome();
@@ -34,6 +36,7 @@ export function useIntegrityFindings() {
     rules.isFetched &&
     vehicles.isFetched &&
     readings.isFetched &&
+    rentalDays.isFetched &&
     expenses.isFetched &&
     receipts.isFetched &&
     income.isFetched &&
@@ -46,6 +49,7 @@ export function useIntegrityFindings() {
       rules.data,
       vehicles.data,
       readings.data,
+      rentalDays.data,
       expenses.data,
       receipts.data,
       income.data,
@@ -77,6 +81,7 @@ export function useIntegrityFindings() {
       }
 
       for (const vehicle of vehicles.data ?? []) {
+        if (isRentalVehicle(vehicle)) continue;
         const vehicleReadings = (readings.data ?? []).filter((row) => row.vehicle_id === vehicle.id);
         const accepted = consecutiveValidReadings(vehicleReadings);
         if (!accepted.length) {
@@ -139,11 +144,13 @@ export function useIntegrityFindings() {
       const hasHistory =
         Boolean((readings.data ?? []).length) ||
         Boolean((expenses.data ?? []).length) ||
-        Boolean((income.data ?? []).length);
+        Boolean((income.data ?? []).length) ||
+        Boolean((rentalDays.data ?? []).length);
       const recentActivity =
         (readings.data ?? []).some((row) => row.recorded_on >= weekAgo) ||
         (expenses.data ?? []).some((row) => row.incurred_on >= weekAgo) ||
-        (income.data ?? []).some((row) => row.received_on >= weekAgo);
+        (income.data ?? []).some((row) => row.received_on >= weekAgo) ||
+        (rentalDays.data ?? []).some((row) => row.work_date >= weekAgo);
       if ((vehicles.data ?? []).length && hasHistory && !recentActivity) {
         push('missing_activity', 'record');
       }

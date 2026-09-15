@@ -114,9 +114,13 @@ export const ON_DEVICE_RECEIPT_OCR_HTML = `<!DOCTYPE html>
           }
           const words = await recognizeOnce(worker, originalUrl, 4, LETTERS, false);
           const digits = await recognizeOnce(worker, binaryUrl, 6, DIGITS, true);
-          const extraDigits = await recognizeOnce(worker, binaryUrl, 4, DIGITS, true);
-          const text = [words.text, digits.text, extraDigits.text].filter(Boolean).join('\\n');
-          const confidence = Math.max(words.confidence || 0, digits.confidence || 0, extraDigits.confidence || 0);
+          const parts = [words.text, digits.text];
+          if ((digits.confidence || 0) < 0.55) {
+            const extraDigits = await recognizeOnce(worker, binaryUrl, 4, DIGITS, true);
+            parts.push(extraDigits.text);
+          }
+          const text = parts.filter(Boolean).join('\\n');
+          const confidence = Math.max(words.confidence || 0, digits.confidence || 0);
           send({ ok: true, text: text, confidence: confidence });
         } catch (error) {
           send({ ok: false, error: String(error) });

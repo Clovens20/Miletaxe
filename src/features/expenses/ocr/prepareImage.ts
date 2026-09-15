@@ -14,17 +14,23 @@ async function readBase64(uri: string): Promise<string | null> {
   }
 }
 
-/** PNG plus large : les 0 des tickets thermos se distinguent mieux des 8. */
+/** JPEG plus léger pour un upload et un OCR rapides. */
 export async function prepareReceiptImage(uri: string): Promise<PreparedReceiptImage> {
   try {
-    const saved = await manipulateAsync(uri, [{ resize: { width: 2000 } }], {
-      compress: 1,
-      format: SaveFormat.PNG,
-      base64: true,
-    });
+    const [ocr, upload] = await Promise.all([
+      manipulateAsync(uri, [{ resize: { width: 1600 } }], {
+        compress: 0.9,
+        format: SaveFormat.JPEG,
+        base64: true,
+      }),
+      manipulateAsync(uri, [{ resize: { width: 1400 } }], {
+        compress: 0.82,
+        format: SaveFormat.JPEG,
+      }),
+    ]);
     return {
-      uri: saved.uri,
-      base64: saved.base64 ?? (await readBase64(saved.uri)),
+      uri: upload.uri,
+      base64: ocr.base64 ?? (await readBase64(ocr.uri)),
     };
   } catch {
     return { uri, base64: await readBase64(uri) };

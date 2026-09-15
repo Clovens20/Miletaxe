@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 
 import { getSupabase, isLocalMode, isSupabaseConfigured } from '@/lib/supabase/client';
 
@@ -39,13 +39,65 @@ export function useSupportInbox(enabled = true) {
   });
 }
 
+const localThreadReads = new Map<string, string>();
+
+function rememberLocalRead(threadId: string, at: string) {
+  const previous = localThreadReads.get(threadId);
+  if (!previous || Date.parse(at) > Date.parse(previous)) localThreadReads.set(threadId, at);
+}
+
+function withLocalRead(thread: SupportThread): SupportThread {
+  const local = localThreadReads.get(thread.id);
+  if (!local) return thread;
+  if (!thread.user_last_read_at || Date.parse(local) > Date.parse(thread.user_last_read_at)) {
+    return { ...thread, user_last_read_at: local };
+  }
+  return thread;
+}
+
 export function staffRepliedLast(thread: SupportThread) {
   return thread.last_author_role === 'agent' || thread.last_author_role === 'admin';
 }
 
+export function isUnreadStaffReply(thread: SupportThread) {
+  if (!staffRepliedLast(thread)) return false;
+  if (!thread.user_last_read_at) return true;
+  return Date.parse(thread.last_message_at) > Date.parse(thread.user_last_read_at);
+}
+
+function stampThreadRead(client: QueryClient, threadId: string, at: string) {
+  rememberLocalRead(threadId, at);
+  client.setQueryData<SupportThread[]>(['support', 'mine'], (rows) =>
+    (rows ?? []).map((row) => (row.id === threadId ? { ...row, user_last_read_at: at } : row)),
+  );
+  client.setQueryData<SupportThread | null>(['support', 'thread', threadId], (row) =>
+    row ? { ...row, user_last_read_at: at } : row,
+  );
+}
+
+export function useMarkSupportThreadRead(threadId?: string, lastMessageAt?: string | null) {
+  const client = useQueryClient();
+  useEffect(() => {
+    if (!threadId || isLocalMode()) return;
+    const now = new Date().toISOString();
+    const at =
+      lastMessageAt && Date.parse(lastMessageAt) > Date.parse(now) ? lastMessageAt : now;
+    stampThreadRead(client, threadId, at);
+    let cancelled = false;
+    void (async () => {
+      const { error } = await getSupabase().rpc('mark_support_thread_read', { p_thread_id: threadId });
+      if (cancelled || error) return;
+      await client.invalidateQueries({ queryKey: ['support'] });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [client, threadId, lastMessageAt]);
+}
+
 export function useUnreadSupportReplies() {
   const threads = useMySupportThreads();
-  const count = (threads.data ?? []).filter(staffRepliedLast).length;
+  const count = (threads.data ?? []).filter(isUnreadStaffReply).length;
   return { ...threads, count };
 }
 
@@ -71,16 +123,17 @@ export function useMySupportThreads() {
           support_messages?: { body: string; author_role: SupportAuthorRole; created_at: string }[];
         };
         const last = [...(raw.support_messages ?? [])].sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0];
-        return {
+        return withLocalRead({
           id: raw.id,
           user_id: raw.user_id,
           status: raw.status,
           assigned_agent_id: raw.assigned_agent_id,
           topic_id: raw.topic_id,
           last_message_at: raw.last_message_at,
+          user_last_read_at: raw.user_last_read_at ?? null,
           last_message: last?.body ?? null,
           last_author_role: last?.author_role ?? null,
-        };
+        });
       });
     },
   });
@@ -115,7 +168,7 @@ export function useSupportThread(threadId?: string) {
         .eq('id', threadId as string)
         .maybeSingle();
       if (error) throw error;
-      return (data as SupportThread | null) ?? null;
+      return data ? withLocalRead(data as SupportThread) : null;
     },
   });
 }

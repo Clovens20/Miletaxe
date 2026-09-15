@@ -13,8 +13,6 @@ import { useHomeDashboard } from '@/features/dashboard/hooks';
 import { findingHref } from '@/features/dashboard/routes';
 import { localize } from '@/lib/i18n/localize';
 import { formatDistance, formatMoney, formatYearMonth } from '@/lib/format';
-import { HeroButton } from '@/components/ui/HeroButton';
-import { useGenerateReport, usePreferredReportPeriod } from '@/features/reports/hooks';
 import { useUnreadSupportReplies } from '@/features/support/hooks';
 import type { DistanceUnit, SupportedLocale } from '@/types/domain';
 import { colors, radius, space, type } from '@/theme';
@@ -28,8 +26,6 @@ export default function HomeScreen() {
   const locale = (i18n.language === 'en' ? 'en' : 'fr') as SupportedLocale;
   const dashboard = useHomeDashboard();
   const assistant = useOpenAssistantCount();
-  const generate = useGenerateReport();
-  const preferred = usePreferredReportPeriod();
   const supportReplies = useUnreadSupportReplies();
   const firstName = profile?.full_name?.split(' ')[0];
   const monthLabel = formatYearMonth(dashboard.monthStart.slice(0, 7), locale, profile?.country_code);
@@ -43,6 +39,8 @@ export default function HomeScreen() {
     dashboard.tone === 'danger' ? colors.danger : dashboard.tone === 'warn' ? colors.warning : colors.success;
   const reviewCount = (assistant.count ?? 0) + dashboard.completeness.total;
   const vehicle = dashboard.vehiclesToday[0];
+  const showOdometerAction = dashboard.hasOdometerVehicles || !dashboard.hasVehicles;
+  const showRentalAction = dashboard.hasRentalVehicles || !dashboard.hasVehicles;
 
   return (
     <Screen scroll home={false} back={false}>
@@ -72,11 +70,20 @@ export default function HomeScreen() {
           label={t('home.scanReceipt')}
           onPress={() => router.push('/(app)/expenses/scan')}
         />
-        <ActionTile
-          icon="speedometer-outline"
-          label={t('home.logOdometer')}
-          onPress={() => router.push('/(app)/odometer/capture')}
-        />
+        {showRentalAction ? (
+          <ActionTile
+            icon="key-outline"
+            label={t('home.logRental')}
+            onPress={() => router.push('/(app)/rental/daily' as Href)}
+          />
+        ) : null}
+        {showOdometerAction ? (
+          <ActionTile
+            icon="speedometer-outline"
+            label={t('home.logOdometer')}
+            onPress={() => router.push('/(app)/odometer/capture')}
+          />
+        ) : null}
         <ActionTile
           icon="cash-outline"
           label={t('home.addIncome')}
@@ -85,48 +92,58 @@ export default function HomeScreen() {
       </View>
 
       <Card>
-        <ListRow
-          icon="time-outline"
-          title={t('home.addPastExpenses')}
-          subtitle={t('home.addPastExpensesHint')}
-          onPress={() => router.push('/(app)/expenses/past')}
-        />
-      </Card>
-
-      <HeroButton
-        label={t('home.generatePackage')}
-        subtitle={preferred ? localize(preferred.label_i18n, locale) : t('home.generatePackageHint')}
-        loading={generate.isPending}
-        onPress={async () => {
-          const report = await generate.mutateAsync();
-          router.push(`/(app)/reports/${report.id}`);
-        }}
-      />
-
-      <Card>
         <Text style={styles.cardKicker}>{t('home.todaySection')}</Text>
         {!dashboard.hasVehicles ? (
-          <ListRow
-            icon="car-outline"
-            title={t('home.noVehicle')}
-            subtitle={t('mileage.addVehicle')}
-            onPress={() => router.push('/(app)/vehicles/new')}
-          />
-        ) : vehicle ? (
-          <View style={styles.todayGrid}>
-            <TodayStat label={t('home.startOdometer')} value={formatReading(vehicle.start, vehicle.unit)} muted={vehicle.missingStart} />
-            <TodayStat label={t('home.endOdometer')} value={formatReading(vehicle.end, vehicle.unit)} muted={vehicle.missingEnd || vehicle.missingStart} />
-            <TodayStat
-              label={t('home.todayDriven')}
-              value={formatDistance(dashboard.todayDistance, dashboard.unit, locale, profile?.country_code)}
+          <>
+            <ListRow
+              icon="key-outline"
+              title={t('rental.title')}
+              subtitle={t('rental.hint')}
+              onPress={() => router.push('/(app)/rental/daily' as Href)}
             />
+            <ListRow
+              icon="car-outline"
+              title={t('home.noVehicle')}
+              subtitle={t('mileage.addVehicle')}
+              onPress={() => router.push('/(app)/vehicles/new')}
+            />
+          </>
+        ) : (
+          <View style={styles.todayGrid}>
+            {dashboard.hasRentalVehicles ? (
+              <TodayStat
+                label={t('home.todayRental')}
+                value={
+                  dashboard.rentalTodayLogged
+                    ? formatMoney(dashboard.rentalTodayAmount, dashboard.currency, locale, profile?.country_code)
+                    : dash
+                }
+                muted={!dashboard.rentalTodayLogged}
+              />
+            ) : null}
+            {vehicle ? (
+              <>
+                <TodayStat label={t('home.startOdometer')} value={formatReading(vehicle.start, vehicle.unit)} muted={vehicle.missingStart} />
+                <TodayStat label={t('home.endOdometer')} value={formatReading(vehicle.end, vehicle.unit)} muted={vehicle.missingEnd || vehicle.missingStart} />
+                <TodayStat
+                  label={t('home.todayDriven')}
+                  value={formatDistance(dashboard.todayDistance, dashboard.unit, locale, profile?.country_code)}
+                />
+              </>
+            ) : null}
           </View>
-        ) : null}
-        <Text style={styles.todayMeta}>
-          {t('home.todayReceiptsShort', { count: dashboard.todayReceiptCount })}
-          {' · '}
-          {t('home.todayIncomeShort', { count: dashboard.todayIncomeCount })}
-        </Text>
+        )}
+        <Pressable onPress={() => router.push('/(app)/expenses/check' as Href)}>
+          <Text style={styles.todayMeta}>
+            {t('home.todayExpensesShort', {
+              amount: formatMoney(dashboard.todayExpenseAmount, dashboard.currency, locale, profile?.country_code),
+            })}
+            {' · '}
+            {t('home.todayReceiptsShort', { count: dashboard.todayReceiptCount })}
+            {' · '}
+            {t('home.todayIncomeShort', { count: dashboard.todayIncomeCount })}
+          </Text>
+        </Pressable>
       </Card>
 
       <Card style={styles.status}>
@@ -210,12 +227,6 @@ export default function HomeScreen() {
           ) : null}
         </View>
       ) : null}
-
-      <ListRow
-        icon="folder-open-outline"
-        title={t('home.viewReports')}
-        onPress={() => router.push('/(app)/reports')}
-      />
 
       <DisclaimerBanner text={`${t('disclaimer.short')} ${t('home.reviewAccountant')}`} />
     </Screen>
@@ -305,10 +316,13 @@ const styles = StyleSheet.create({
   },
   actionRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: space.sm,
   },
   action: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: '30%',
+    minWidth: 96,
     minHeight: 96,
     backgroundColor: colors.surface,
     borderWidth: 1,

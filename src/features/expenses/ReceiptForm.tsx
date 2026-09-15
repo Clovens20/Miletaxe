@@ -19,6 +19,7 @@ export function ReceiptFormFields({
   locale,
   compact,
   dateHint,
+  showFuel,
 }: {
   control: Control<ReceiptReviewValues>;
   categories: ExpenseCategoryRecord[];
@@ -26,6 +27,7 @@ export function ReceiptFormFields({
   locale: SupportedLocale;
   compact?: boolean;
   dateHint?: string;
+  showFuel?: boolean;
 }) {
   const { t } = useTranslation();
 
@@ -103,6 +105,56 @@ export function ReceiptFormFields({
           </>
         )}
       />
+      {compact && showFuel ? (
+        <>
+          {vehicles.length ? (
+            <Controller
+              control={control}
+              name="vehicle_id"
+              render={({ field: { value, onChange } }) => (
+                <>
+                  <Text style={{ ...type.label, color: colors.text }}>
+                    {t('expenses.vehicle')} ({t('common.optional')})
+                  </Text>
+                  <ChoiceList
+                    value={value ?? ''}
+                    onChange={onChange}
+                    options={[
+                      { value: '', label: t('common.all') },
+                      ...vehicles.map((row) => ({ value: row.id, label: row.nickname })),
+                    ]}
+                  />
+                </>
+              )}
+            />
+          ) : null}
+          <Controller
+            control={control}
+            name="fuel_quantity"
+            render={({ field: { onChange, value } }) => (
+              <TextField
+                label={`${t('expenses.fuelQuantity')} (${t('common.optional')})`}
+                hint={t('expenses.fuelHint')}
+                keyboardType="decimal-pad"
+                value={value ?? ''}
+                onChangeText={onChange}
+              />
+            )}
+          />
+          <Controller
+            control={control}
+            name="price_per_unit"
+            render={({ field: { onChange, value } }) => (
+              <TextField
+                label={`${t('expenses.pricePerUnit')} (${t('common.optional')})`}
+                keyboardType="decimal-pad"
+                value={value ?? ''}
+                onChangeText={onChange}
+              />
+            )}
+          />
+        </>
+      ) : null}
       {compact ? null : (
         <>
           <Controller

@@ -27,6 +27,7 @@ export type ReceiptDraft = {
   receiptId: string | null;
   extraction: ReceiptExtraction;
   catchUp?: boolean;
+  refining?: boolean;
 };
 
 export interface ReceiptOcrProvider {
@@ -56,8 +57,14 @@ export function extractionFromReceiptText(
     merchant_name: parsed.merchant_name,
     incurred_on: parsed.incurred_on,
     incurred_time: parsed.incurred_time,
+    subtotal: parsed.subtotal,
+    tax_amount: parsed.tax_amount,
     total: parsed.total,
     currency: parsed.currency,
+    category_hint: parsed.category_hint,
+    fuel_quantity: parsed.fuel_quantity,
+    price_per_unit: parsed.price_per_unit,
+    payment_method: parsed.payment_method,
     confidence: parsed.confidence,
     provider: options?.provider ?? 'on-device',
     requires_confirmation: true,

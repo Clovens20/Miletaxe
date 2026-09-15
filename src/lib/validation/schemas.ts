@@ -127,6 +127,24 @@ export const receiptReviewSchema = z.object({
 
 export const expenseSchema = receiptReviewSchema;
 
+export const rentalVehicleSchema = z.object({
+  nickname: z.string().trim().min(1, 'validation.required'),
+  daily_rental_rate: z.string().min(1, 'validation.positive'),
+  rental_vendor: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+export const rentalDaySchema = z.object({
+  work_date: z
+    .string()
+    .min(1, 'validation.required')
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'validation.date'),
+  rental_amount: z.string().min(1, 'validation.positive'),
+  nickname: z.string().optional(),
+  rental_vendor: z.string().optional(),
+  notes: z.string().optional(),
+});
+
 export const incomeSchema = z.object({
   source_name: z.string().trim().min(1, 'validation.required'),
   amount: z.string().min(1, 'validation.positive'),
@@ -156,3 +174,5 @@ export type ExpenseValues = z.infer<typeof expenseSchema>;
 export type ReceiptReviewValues = z.infer<typeof receiptReviewSchema>;
 export type IncomeValues = z.infer<typeof incomeSchema>;
 export type OnboardingValues = z.infer<typeof onboardingSchema>;
+export type RentalVehicleValues = z.infer<typeof rentalVehicleSchema>;
+export type RentalDayValues = z.infer<typeof rentalDaySchema>;

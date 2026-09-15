@@ -153,3 +153,39 @@ export function formatYearMonth(
     year: 'numeric',
   }).format(date);
 }
+
+export function formatWeekdayShort(
+  isoDate: string,
+  language: SupportedLocale,
+  countryCode?: string | null,
+): string {
+  const date = new Date(`${isoDate}T00:00:00`);
+  return new Intl.DateTimeFormat(intlLocale(language, countryCode), {
+    weekday: 'short',
+  })
+    .format(date)
+    .replace(/\.$/, '');
+}
+
+export function formatDayOfMonth(isoDate: string): string {
+  return String(new Date(`${isoDate}T00:00:00`).getDate());
+}
+
+export function formatWeekRange(
+  startIso: string,
+  endIso: string,
+  language: SupportedLocale,
+  countryCode?: string | null,
+): string {
+  const start = new Date(`${startIso}T00:00:00`);
+  const end = new Date(`${endIso}T00:00:00`);
+  const loc = intlLocale(language, countryCode);
+  const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
+  if (sameMonth) {
+    const day = new Intl.DateTimeFormat(loc, { day: 'numeric' });
+    const endFmt = new Intl.DateTimeFormat(loc, { day: 'numeric', month: 'short' });
+    return `${day.format(start)} – ${endFmt.format(end)}`;
+  }
+  const fmt = new Intl.DateTimeFormat(loc, { day: 'numeric', month: 'short' });
+  return `${fmt.format(start)} – ${fmt.format(end)}`;
+}

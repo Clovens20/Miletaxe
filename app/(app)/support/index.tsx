@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Screen } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
-import { staffRepliedLast, SupportRealtime, useMySupportThreads, useStartSupportThread } from '@/features/support/hooks';
+import { isUnreadStaffReply, SupportRealtime, useMySupportThreads, useStartSupportThread } from '@/features/support/hooks';
 import { colors, space, type } from '@/theme';
 
 export default function SupportHomeScreen() {
@@ -36,8 +36,8 @@ export default function SupportHomeScreen() {
       />
       {(threads.data ?? []).map((row) => (
         <Pressable key={row.id} onPress={() => router.push(`/(app)/support/${row.id}` as Href)}>
-          <Card style={[styles.threadCard, staffRepliedLast(row) ? styles.replyCard : null]}>
-            {staffRepliedLast(row) ? <Badge label={t('support.replyReceived')} tone="info" /> : null}
+          <Card style={[styles.threadCard, isUnreadStaffReply(row) ? styles.replyCard : null]}>
+            {isUnreadStaffReply(row) ? <Badge label={t('support.replyReceived')} tone="info" /> : null}
             <Text style={styles.title}>{t(`support.status.${row.status}`, { defaultValue: row.status })}</Text>
             {row.last_message ? (
               <Text style={styles.preview} numberOfLines={3}>

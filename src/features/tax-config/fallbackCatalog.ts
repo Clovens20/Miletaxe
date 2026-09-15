@@ -150,6 +150,7 @@ export const fallbackExpenseCategories: ExpenseCategoryRecord[] = [
   expense('CA', 'tolls', 'Péages', 'Tolls', 50, true),
   expense('CA', 'insurance', 'Assurance', 'Insurance', 60, false),
   expense('CA', 'vehicle', 'Frais de véhicule', 'Vehicle expenses', 70, true),
+  expense('CA', 'vehicle_rental', 'Location de véhicule', 'Vehicle rental', 65, false),
   expense('CA', 'office', 'Frais de bureau', 'Office expenses', 80, false),
   expense('CA', 'phone', 'Téléphone', 'Phone', 90, false),
   expense('CA', 'other', 'Autre', 'Other', 100, false),
@@ -163,6 +164,7 @@ export const fallbackExpenseCategories: ExpenseCategoryRecord[] = [
   expense('US', 'tolls', 'Péages', 'Tolls', 50, true),
   expense('US', 'insurance', 'Assurance', 'Insurance', 60, false),
   expense('US', 'vehicle', 'Frais de véhicule', 'Vehicle expenses', 70, true),
+  expense('US', 'vehicle_rental', 'Location de véhicule', 'Vehicle rental', 65, false),
   expense('US', 'office', 'Frais de bureau', 'Office expenses', 80, false),
   expense('US', 'phone', 'Téléphone', 'Phone', 90, false),
   expense('US', 'other', 'Autre', 'Other', 100, false),
@@ -229,7 +231,7 @@ export const fallbackReportSections: ReportSectionRecord[] = [
 ];
 
 export const fallbackIntegrityRules: IntegrityRuleRecord[] = [
-  { id: 'r1', code: 'missing_vehicle', entity_type: 'vehicle', severity: 'blocking', title_i18n: L('Aucun véhicule', 'No vehicle'), description_i18n: L('Ajoutez au moins un véhicule pour enregistrer le kilométrage.', 'Add at least one vehicle to record mileage.'), config: {} },
+  { id: 'r1', code: 'missing_vehicle', entity_type: 'vehicle', severity: 'blocking', title_i18n: L('Aucun véhicule', 'No vehicle'), description_i18n: L('Ajoutez un véhicule ou enregistrez une location de véhicule de travail.', 'Add a vehicle or log a work vehicle rental.'), config: {} },
   { id: 'r2', code: 'missing_opening_odometer', entity_type: 'odometer', severity: 'warning', title_i18n: L('Relevé de début manquant', 'Missing opening reading'), description_i18n: L('Aucun relevé de début de période pour ce véhicule cette année.', 'No period-start reading for this vehicle this year.'), config: { kind: 'opening' } },
   { id: 'r3', code: 'odometer_not_monotonic', entity_type: 'odometer', severity: 'blocking', title_i18n: L('Odomètre en baisse', 'Odometer went down'), description_i18n: L('Un relevé est inférieur au précédent. Vérifiez les chiffres.', 'A reading is lower than the previous one.'), config: {} },
   { id: 'r4', code: 'expense_missing_receipt', entity_type: 'expense', severity: 'warning', title_i18n: L('Dépense sans reçu', 'Expense without a receipt'), description_i18n: L('Dépense potentiellement liée à l’activité, sans reçu conservé. À revoir avec votre comptable.', 'Potentially business-related expense, with no receipt on file. Review with your accountant.'), config: {} },

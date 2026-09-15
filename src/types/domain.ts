@@ -32,6 +32,7 @@ export type AssistantRecommendationStatus = 'open' | 'dismissed' | 'confirmed' |
 export type AssistantSignalSource = 'deterministic' | 'ai';
 export type OcrStatus = 'pending' | 'processing' | 'complete' | 'failed' | 'skipped';
 export type OwnershipType = 'owned' | 'leased' | 'rented' | 'other';
+export type VehicleTrackingMode = 'odometer' | 'rental_daily';
 export type FuelType =
   | 'gasoline'
   | 'diesel'

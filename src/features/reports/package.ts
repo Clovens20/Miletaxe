@@ -6,6 +6,8 @@ import type { DailyMileage, DistanceSegment, OdometerReading } from '@/features/
 import type { ExpenseRecord } from '@/features/expenses/types';
 import type { IncomeEntry } from '@/features/income/hooks';
 import type { Vehicle } from '@/features/vehicles/hooks';
+import { isRentalVehicle } from '@/features/vehicles/hooks';
+import type { VehicleRentalDay } from '@/features/rental/types';
 import type { IntegrityFinding } from '@/features/integrity/engine';
 import type { ExpenseCategoryRecord, ReportSectionRecord } from '@/features/tax-config/types';
 import type { CurrencyCode, DistanceUnit, LocalizedString } from '@/types/domain';
@@ -25,6 +27,7 @@ export type PackageExpenseLine = {
   incurred_on: string;
   vendor_name: string | null;
   category_i18n: LocalizedString | null;
+  category_code?: string | null;
   amount: number;
   tax_amount: number | null;
   currency: string;
@@ -71,7 +74,7 @@ export type AccountantPackageSummary = {
     unit: DistanceUnit;
     currency: string;
   };
-  expenses_by_category: { category_i18n: LocalizedString | null; total: number; count: number }[];
+  expenses_by_category: { category_i18n: LocalizedString | null; code?: string | null; total: number; count: number }[];
   income_by_source: { source_name: string; total: number; count: number }[];
   vehicles: { id: string; nickname: string; make: string | null; model: string | null; plate: string | null }[];
   expenses: PackageExpenseLine[];
@@ -86,6 +89,12 @@ export type AccountantPackageSummary = {
     complete?: boolean;
     warnings?: Array<'missing_end' | 'missing_start' | 'invalid_reading'>;
   }>;
+  rental_days: Array<{
+    date: string;
+    vehicle: string;
+    amount: number;
+    notes: string | null;
+  }>;
   findings: { severity: string; title_i18n: LocalizedString; description_i18n: LocalizedString }[];
 };
 
@@ -98,14 +107,21 @@ type BuildInput = {
   segments: DistanceSegment[];
   expenses: ExpenseRecord[];
   income: IncomeEntry[];
+  rentalDays?: VehicleRentalDay[];
   expenseCategories: ExpenseCategoryRecord[];
   findings: IntegrityFinding[];
 };
 
-function categoryLabel(categories: ExpenseCategoryRecord[], id: string | null): LocalizedString | null {
-  if (!id) return null;
+function categoryMeta(categories: ExpenseCategoryRecord[], id: string | null): {
+  category_i18n: LocalizedString | null;
+  code: string | null;
+} {
+  if (!id) return { category_i18n: null, code: null };
   const row = categories.find((item) => item.id === id);
-  return row?.accountant_label_i18n ?? row?.name_i18n ?? null;
+  return {
+    category_i18n: row?.accountant_label_i18n ?? row?.name_i18n ?? null,
+    code: row?.code ?? null,
+  };
 }
 
 export function buildAccountantPackage(input: BuildInput): AccountantPackageSummary {
@@ -122,11 +138,16 @@ export function buildAccountantPackage(input: BuildInput): AccountantPackageSumm
     .sort((a, b) => a.received_on.localeCompare(b.received_on));
   const readings = input.readings.filter((row) => inInclusiveRange(row.recorded_on, period.start, period.end));
 
-  const expensesByCategory = new Map<string, { category_i18n: LocalizedString | null; total: number; count: number }>();
+  const expensesByCategory = new Map<
+    string,
+    { category_i18n: LocalizedString | null; code: string | null; total: number; count: number }
+  >();
   for (const row of completeExpenses) {
     const key = row.category_id ?? 'uncategorized';
+    const meta = categoryMeta(input.expenseCategories, row.category_id);
     const current = expensesByCategory.get(key) ?? {
-      category_i18n: categoryLabel(input.expenseCategories, row.category_id),
+      category_i18n: meta.category_i18n,
+      code: meta.code,
       total: 0,
       count: 0,
     };
@@ -146,6 +167,7 @@ export function buildAccountantPackage(input: BuildInput): AccountantPackageSumm
 
   const daily_mileage: AccountantPackageSummary['daily_mileage'] = [];
   for (const vehicle of input.vehicles) {
+    if (isRentalVehicle(vehicle)) continue;
     const days = groupDailyMileage(input.readings, vehicle.id, vehicle.distance_unit ?? unit).filter((day: DailyMileage) =>
       inInclusiveRange(day.date, period.start, period.end),
     );
@@ -161,6 +183,33 @@ export function buildAccountantPackage(input: BuildInput): AccountantPackageSumm
         warnings: day.warnings,
       });
     }
+  }
+
+  const rental_days = (input.rentalDays ?? [])
+    .filter((row) => inInclusiveRange(row.work_date, period.start, period.end))
+    .sort((a, b) => a.work_date.localeCompare(b.work_date))
+    .map((row) => ({
+      date: row.work_date,
+      vehicle: input.vehicles.find((item) => item.id === row.vehicle_id)?.nickname ?? '',
+      amount: Number(row.rental_amount),
+      notes: row.notes,
+    }));
+  const rentalTotal = rental_days.reduce((sum, row) => sum + row.amount, 0);
+  if (rentalTotal > 0) {
+    const rentalCat = input.expenseCategories.find((item) => item.code === 'vehicle_rental');
+    const key = rentalCat?.id ?? 'vehicle_rental';
+    const current = expensesByCategory.get(key) ?? {
+      category_i18n: rentalCat?.accountant_label_i18n ?? rentalCat?.name_i18n ?? {
+        fr: 'Location de véhicule',
+        en: 'Vehicle rental',
+      },
+      code: 'vehicle_rental',
+      total: 0,
+      count: 0,
+    };
+    current.total += rentalTotal;
+    current.count += rental_days.length;
+    expensesByCategory.set(key, current);
   }
 
   return {
@@ -183,9 +232,9 @@ export function buildAccountantPackage(input: BuildInput): AccountantPackageSumm
     })),
     totals: {
       recorded_distance: sumPositiveDistance(input.segments, period.start, period.end, unit),
-      recorded_expenses: completeExpenses.reduce((sum, row) => sum + Number(row.amount), 0),
+      recorded_expenses: completeExpenses.reduce((sum, row) => sum + Number(row.amount), 0) + rentalTotal,
       recorded_income: income.reduce((sum, row) => sum + Number(row.amount), 0),
-      expense_count: completeExpenses.length,
+      expense_count: completeExpenses.length + rental_days.length,
       income_count: income.length,
       vehicle_count: input.vehicles.length,
       odometer_reading_count: readings.length,
@@ -205,7 +254,8 @@ export function buildAccountantPackage(input: BuildInput): AccountantPackageSumm
       id: row.id,
       incurred_on: row.incurred_on,
       vendor_name: row.vendor_name,
-      category_i18n: categoryLabel(input.expenseCategories, row.category_id),
+      category_i18n: categoryMeta(input.expenseCategories, row.category_id).category_i18n,
+      category_code: categoryMeta(input.expenseCategories, row.category_id).code,
       amount: Number(row.amount),
       tax_amount: row.tax_amount,
       currency: row.currency,
@@ -226,6 +276,7 @@ export function buildAccountantPackage(input: BuildInput): AccountantPackageSumm
       reference_number: row.reference_number,
     })),
     daily_mileage,
+    rental_days,
     findings: input.findings.map((item) => ({
       severity: item.severity,
       title_i18n: item.title_i18n,

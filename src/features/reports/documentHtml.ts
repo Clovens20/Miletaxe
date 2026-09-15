@@ -5,6 +5,7 @@ import {
   completeExpenseLines,
   expensesWithoutReceipt,
   groupByMonth,
+  headlineExpenseRows,
   incompleteExpenseLines,
   incompleteMileageDays,
   isCompleteMileageDay,
@@ -36,12 +37,11 @@ type Copy = {
   preparedFor: string;
   occupation: string;
   recipient: string;
-  howTo: string;
-  howTo1: string;
-  howTo2: string;
-  howTo3: string;
-  howTo4: string;
-  howTo5: string;
+  headline: string;
+  headlineHint: string;
+  incomeTotal: string;
+  expenseTotal: string;
+  expenseBreakdown: string;
   first: string;
   firstNone: string;
   missingReceipts: string;
@@ -62,6 +62,7 @@ type Copy = {
   expenseLines: string;
   incomeLines: string;
   mileage: string;
+  rentalDays: string;
   issues: string;
   none: string;
   receipt: string;
@@ -105,12 +106,11 @@ function copy(locale: SupportedLocale): Copy {
       preparedFor: 'Client',
       occupation: 'Occupation',
       recipient: 'Prepared for',
-      howTo: 'How to read this package',
-      howTo1: 'Totals are the sum of complete entries only. MileTax does not calculate tax or deductions.',
-      howTo2: 'Each line has a reference (E-001, I-001, M-001). Use it when you write back to the client.',
-      howTo3: '“No receipt” means no photo is attached in the app. A paper copy may still exist.',
-      howTo4: 'Daily kilometres = closing odometer − opening odometer. Incomplete days are excluded from km totals.',
-      howTo5: '“Items to mention” are holes in the file, not tax advice.',
+      headline: 'At a glance',
+      headlineHint: 'Totals already added up. Line-by-line detail follows.',
+      incomeTotal: 'Total income',
+      expenseTotal: 'Total expenses',
+      expenseBreakdown: 'Expenses by type',
       first: 'Review first',
       firstNone: 'No gaps flagged in this package.',
       missingReceipts: '{count} complete expense(s) with no photo attached',
@@ -131,6 +131,7 @@ function copy(locale: SupportedLocale): Copy {
       expenseLines: 'Expense detail',
       incomeLines: 'Income detail',
       mileage: 'Daily mileage',
+      rentalDays: 'Vehicle rental days',
       issues: 'Items to mention',
       none: 'None',
       receipt: 'Photo attached',
@@ -173,12 +174,11 @@ function copy(locale: SupportedLocale): Copy {
     preparedFor: 'Client',
     occupation: 'Occupation',
     recipient: 'Destinataire',
-    howTo: 'Comment lire ce dossier',
-    howTo1: 'Les totaux sont la somme des écritures complètes seulement. MileTax ne calcule ni impôt ni déduction.',
-    howTo2: 'Chaque ligne a un numéro (D-001, R-001, K-001). Servez-vous-en pour écrire au client.',
-    howTo3: '« Sans photo » signifie qu’aucune photo n’est jointe dans l’application. Un papier peut exister ailleurs.',
-    howTo4: 'Km d’une journée = odomètre de fin − odomètre de début. Les jours incomplets sont exclus des totaux km.',
-    howTo5: 'Les « points à mentionner » sont des trous de dossier, pas des avis fiscaux.',
+    headline: 'Grandes lignes',
+    headlineHint: 'Totaux déjà calculés. Le détail des écritures suit.',
+    incomeTotal: 'Revenus totaux',
+    expenseTotal: 'Dépenses totales',
+    expenseBreakdown: 'Dépenses par type',
     first: 'À traiter en premier',
     firstNone: 'Aucun écart signalé dans ce dossier.',
     missingReceipts: '{count} dépense(s) complète(s) sans photo jointe',
@@ -199,6 +199,7 @@ function copy(locale: SupportedLocale): Copy {
     expenseLines: 'Détail des dépenses',
     incomeLines: 'Détail des revenus',
     mileage: 'Kilométrage par jour',
+    rentalDays: 'Journées de location de véhicule',
     issues: 'Points à mentionner',
     none: 'Aucun',
     receipt: 'Photo jointe',
@@ -283,6 +284,9 @@ export function accountantPackageHtml(
   const preparedOn = summary.generated_on
     ? formatDate(summary.generated_on, locale, country)
     : '—';
+  const headlineRows = headlineExpenseRows(summary, locale, t.uncategorized);
+  const featuredRows = headlineRows.filter((row) => row.featured);
+  const otherRows = headlineRows.filter((row) => !row.featured);
 
   const flags: string[] = [];
   if (noPhoto.length) flags.push(fill(t.missingReceipts, { count: noPhoto.length }));
@@ -412,6 +416,7 @@ export function accountantPackageHtml(
 <html>
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3" />
   <style>
     @page { margin: 16mm; }
     body { font-family: Helvetica, Arial, sans-serif; color: #0C140E; font-size: 11px; line-height: 1.45; }
@@ -423,8 +428,14 @@ export function accountantPackageHtml(
     .banner { background: #E6F9E9; border: 1px solid #C9E6CE; padding: 10px 12px; margin: 12px 0 16px; }
     .cover { display: table; width: 100%; margin: 8px 0 12px; }
     .cover p { margin: 3px 0; }
-    ol.howto { padding-left: 18px; margin: 8px 0 0; }
-    ol.howto li { margin: 0 0 4px; }
+    .headline { page-break-after: always; }
+    .hero { display: table; width: 100%; margin: 8px 0 16px; }
+    .hero-card { display: table-cell; width: 50%; vertical-align: top; padding: 12px 14px 12px 0; }
+    .hero-card + .hero-card { padding-left: 14px; padding-right: 0; }
+    .hero.three .hero-card { width: 33%; }
+    .hero-label { font-size: 11px; color: #3E5344; margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .hero-value { font-size: 26px; font-weight: 700; margin: 0; letter-spacing: -0.02em; }
+    .hero-value.small { font-size: 20px; }
     table { width: 100%; border-collapse: collapse; margin: 0 0 12px; }
     th, td { text-align: left; padding: 5px 4px; border-bottom: 1px solid #C9E6CE; vertical-align: top; }
     th { font-size: 10px; color: #3E5344; }
@@ -450,14 +461,52 @@ export function accountantPackageHtml(
   </div>
   <div class="banner">${esc(t.disclaimer)}</div>
 
-  <h2>1. ${esc(t.howTo)}</h2>
-  <ol class="howto">
-    <li>${esc(t.howTo1)}</li>
-    <li>${esc(t.howTo2)}</li>
-    <li>${esc(t.howTo3)}</li>
-    <li>${esc(t.howTo4)}</li>
-    <li>${esc(t.howTo5)}</li>
-  </ol>
+  <div class="headline">
+    <h2>1. ${esc(t.headline)}</h2>
+    <p class="muted">${esc(t.headlineHint)}</p>
+    <div class="hero">
+      <div class="hero-card">
+        <p class="hero-label">${esc(t.incomeTotal)}</p>
+        <p class="hero-value">${money(summary.totals.recorded_income, currency, locale, country)}</p>
+      </div>
+      <div class="hero-card">
+        <p class="hero-label">${esc(t.expenseTotal)}</p>
+        <p class="hero-value">${money(summary.totals.recorded_expenses, currency, locale, country)}</p>
+      </div>
+    </div>
+    <h3>${esc(t.expenseBreakdown)}</h3>
+    <div class="hero three">
+      ${featuredRows
+        .map(
+          (row) => `<div class="hero-card">
+            <p class="hero-label">${esc(row.label)}</p>
+            <p class="hero-value small">${money(row.total, currency, locale, country)}</p>
+            <p class="muted">${esc(row.count)} ${esc(t.lines)}</p>
+          </div>`,
+        )
+        .join('')}
+    </div>
+    <table>
+      <thead><tr><th>${esc(t.category)}</th><th class="num">${esc(t.lines)}</th><th class="num">${esc(t.amount)}</th></tr></thead>
+      <tbody>
+        ${headlineRows
+          .map(
+            (row) => `<tr>
+              <td>${esc(row.label)}</td>
+              <td class="num">${esc(row.count)}</td>
+              <td class="num">${money(row.total, currency, locale, country)}</td>
+            </tr>`,
+          )
+          .join('')}
+        <tr class="subtotal">
+          <td>${esc(t.expenseTotal)}</td>
+          <td class="num">${esc(headlineRows.reduce((sum, row) => sum + row.count, 0))}</td>
+          <td class="num">${money(summary.totals.recorded_expenses, currency, locale, country)}</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="muted">${esc(t.distance)} : ${esc(formatDistance(summary.totals.recorded_distance, unit, locale, country))}</p>
+  </div>
 
   <h2>2. ${esc(t.first)}</h2>
   ${
@@ -468,28 +517,6 @@ export function accountantPackageHtml(
 
   <h2>3. ${esc(t.snapshot)}</h2>
   <p class="muted">${esc(t.totalsHint)}</p>
-  <table class="totals">
-    <tr><td>${esc(t.distance)}</td><td class="num">${esc(formatDistance(summary.totals.recorded_distance, unit, locale, country))}</td></tr>
-    <tr><td>${esc(t.expenses)} (${esc(summary.totals.expense_count)})</td><td class="num">${money(summary.totals.recorded_expenses, currency, locale, country)}</td></tr>
-    <tr><td>${esc(t.income)} (${esc(summary.totals.income_count)})</td><td class="num">${money(summary.totals.recorded_income, currency, locale, country)}</td></tr>
-  </table>
-
-  <h3>${esc(t.byCategory)}</h3>
-  ${
-    summary.expenses_by_category.length
-      ? `<table><thead><tr><th>${esc(t.category)}</th><th class="num">${esc(t.lines)}</th><th class="num">${esc(t.amount)}</th></tr></thead><tbody>
-        ${summary.expenses_by_category
-          .map(
-            (row) => `<tr>
-              <td>${esc(localize(row.category_i18n, locale, t.uncategorized))}</td>
-              <td class="num">${esc(row.count)}</td>
-              <td class="num">${money(row.total, currency, locale, country)}</td>
-            </tr>`,
-          )
-          .join('')}
-      </tbody></table>`
-      : `<p>${esc(t.none)}</p>`
-  }
 
   <h3>${esc(t.bySource)}</h3>
   ${
@@ -555,6 +582,20 @@ export function accountantPackageHtml(
 
   <h2>6. ${esc(t.mileage)}</h2>
   ${summary.daily_mileage.length ? mileageBlocks : `<p>${esc(t.none)}</p>`}
+
+  ${
+    (summary.rental_days ?? []).length
+      ? `<h2>7. ${esc(t.rentalDays)}</h2>
+  <table><thead><tr><th>${esc(t.date)}</th><th>${esc(t.vehicles)}</th><th>${esc(t.amount)}</th></tr></thead><tbody>
+  ${(summary.rental_days ?? [])
+    .map(
+      (row) =>
+        `<tr><td>${esc(formatDate(row.date, locale, country))}</td><td>${esc(row.vehicle)}</td><td class="num">${money(row.amount, currency, locale, country)}</td></tr>`,
+    )
+    .join('')}
+  </tbody></table>`
+      : ''
+  }
 
   <p class="muted">${esc(t.disclaimer)}</p>
 </body>

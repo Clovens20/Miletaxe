@@ -7,8 +7,9 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ListRow } from '@/components/ui/ListRow';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { canonicalCategories } from '@/features/expenses/engine';
+import { canonicalCategories, rentalCategoryOf } from '@/features/expenses/engine';
 import { useExpenses } from '@/features/expenses/hooks';
+import { useRentalDays } from '@/features/rental/hooks';
 import { labelOf, useExpenseCategories } from '@/features/tax-config/hooks';
 import { formatMoney } from '@/lib/format';
 import type { CurrencyCode, SupportedLocale } from '@/types/domain';
@@ -19,8 +20,10 @@ export default function ExpenseCategoriesScreen() {
   const { profile } = useAuth();
   const locale = (i18n.language === 'en' ? 'en' : 'fr') as SupportedLocale;
   const expenses = useExpenses();
+  const rentalDays = useRentalDays();
   const categories = useExpenseCategories(profile?.country_code);
   const canonical = useMemo(() => canonicalCategories(categories.data ?? []), [categories.data]);
+  const rentalCategory = rentalCategoryOf(canonical);
   const currency = (profile?.default_currency ?? 'CAD') as CurrencyCode;
   const totals = useMemo(() => {
     const map = new Map<string, { total: number; count: number }>();
@@ -31,8 +34,16 @@ export default function ExpenseCategoriesScreen() {
       current.count += 1;
       map.set(row.category_id, current);
     }
+    if (rentalCategory) {
+      const current = map.get(rentalCategory.id) ?? { total: 0, count: 0 };
+      for (const row of rentalDays.data ?? []) {
+        current.total += Number(row.rental_amount);
+        current.count += 1;
+      }
+      map.set(rentalCategory.id, current);
+    }
     return map;
-  }, [expenses.data]);
+  }, [expenses.data, rentalCategory, rentalDays.data]);
 
   return (
     <Screen title={t('expenses.categoriesTitle')} subtitle={t('expenses.categoriesSubtitle')} scroll>
@@ -42,7 +53,7 @@ export default function ExpenseCategoriesScreen() {
         return (
           <ListRow
             key={row.id}
-            icon="pricetag-outline"
+            icon={row.code === 'vehicle_rental' ? 'key-outline' : 'pricetag-outline'}
             title={labelOf(row, locale)}
             subtitle={t('expenses.categoryCount', { count: stats.count })}
             right={formatMoney(stats.total, currency, locale, profile?.country_code)}

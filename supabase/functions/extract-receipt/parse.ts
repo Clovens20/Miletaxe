@@ -395,6 +395,10 @@ export function parseReceiptFromText(text: string, engineConfidence = 0): Parsed
   if (time) result.incurred_time = time;
   if (total != null) result.total = total;
   if (currency) result.currency = currency;
+  const fuel = parseFuel(normalized);
+  if (fuel.litres != null) (result as { fuel_quantity?: number }).fuel_quantity = fuel.litres;
+  if (fuel.price != null) (result as { price_per_unit?: number }).price_per_unit = fuel.price;
+  if (fuel.litres || fuel.price) (result as { category_hint?: string }).category_hint = 'fuel';
   if (!hasReceiptValues(result)) result.confidence = 0;
   return result;
 }

@@ -3,35 +3,70 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 
 import { colors, radius, space, type } from '@/theme';
 
+type Variant = 'primary' | 'secondary';
+
 type Props = {
   label: string;
   subtitle?: string;
   loading?: boolean;
   onPress: () => void;
+  variant?: Variant;
+  icon?: keyof typeof Ionicons.glyphMap;
 };
 
-export function HeroButton({ label, subtitle, loading, onPress }: Props) {
+export function HeroButton({
+  label,
+  subtitle,
+  loading,
+  onPress,
+  variant = 'primary',
+  icon = 'document-text-outline',
+}: Props) {
+  const palette = variant === 'secondary' ? secondary : primary;
   return (
     <Pressable
       accessibilityRole="button"
       disabled={loading}
       onPress={onPress}
-      style={({ pressed }) => [styles.base, pressed && styles.pressed, loading && styles.disabled]}
+      style={({ pressed }) => [
+        styles.base,
+        { backgroundColor: palette.bg, borderColor: palette.border },
+        pressed && styles.pressed,
+        loading && styles.disabled,
+      ]}
     >
-      <View style={styles.icon}>
+      <View style={[styles.icon, { backgroundColor: palette.iconBg }]}>
         {loading ? (
           <ActivityIndicator color={colors.primary} />
         ) : (
-          <Ionicons name="document-text-outline" size={28} color={colors.primary} />
+          <Ionicons name={icon} size={28} color={palette.iconFg} />
         )}
       </View>
       <View style={styles.copy}>
-        <Text style={styles.label}>{label}</Text>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        <Text style={[styles.label, { color: palette.fg }]}>{label}</Text>
+        {subtitle ? <Text style={[styles.subtitle, { color: palette.muted }]}>{subtitle}</Text> : null}
       </View>
     </Pressable>
   );
 }
+
+const primary = {
+  bg: colors.primary,
+  border: colors.primary,
+  fg: colors.textInverse,
+  muted: colors.primarySoft,
+  iconBg: colors.textInverse,
+  iconFg: colors.primary,
+};
+
+const secondary = {
+  bg: colors.surface,
+  border: colors.primaryMuted,
+  fg: colors.text,
+  muted: colors.textSecondary,
+  iconBg: colors.primarySoft,
+  iconFg: colors.primary,
+};
 
 const styles = StyleSheet.create({
   base: {
@@ -39,8 +74,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.md,
-    backgroundColor: colors.primary,
     borderRadius: radius.lg,
+    borderWidth: 1,
     paddingHorizontal: space.md,
     paddingVertical: space.md,
   },
@@ -54,7 +89,6 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: colors.textInverse,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -64,10 +98,8 @@ const styles = StyleSheet.create({
   },
   label: {
     ...type.section,
-    color: colors.textInverse,
   },
   subtitle: {
     ...type.caption,
-    color: colors.primarySoft,
   },
 });

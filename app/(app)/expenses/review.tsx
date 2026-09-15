@@ -10,10 +10,10 @@ import { Card } from '@/components/ui/Card';
 import { Screen } from '@/components/ui/Screen';
 import { WarningBanner } from '@/components/ui/WarningBanner';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { clearReceiptDraft, getReceiptDraft, setReceiptDraft } from '@/features/expenses/draft';
+import { clearReceiptDraft, getReceiptDraft, setReceiptDraft, subscribeReceiptDraft } from '@/features/expenses/draft';
 import { canonicalCategories, parseOptionalAmount, receiptFormDefaults } from '@/features/expenses/engine';
 import { ReceiptFormFields } from '@/features/expenses/ReceiptForm';
-import { useDiscardReceipt, useFinalizeExpense, useReceipt } from '@/features/expenses/hooks';
+import { useDiscardReceipt, useExpenses, useFinalizeExpense, useReceipt } from '@/features/expenses/hooks';
 import { hasReceiptValues } from '@/features/expenses/ocr/parse';
 import { getReceiptPhotoUrl } from '@/features/expenses/storage';
 import { useExpenseCategories } from '@/features/tax-config/hooks';
@@ -30,13 +30,16 @@ export default function ReviewReceiptScreen() {
   const { user, profile } = useAuth();
   const locale = (i18n.language === 'en' ? 'en' : 'fr') as SupportedLocale;
   const storedDraft = getReceiptDraft();
+  const [liveDraft, setLiveDraft] = useState(storedDraft);
+  useEffect(() => subscribeReceiptDraft(setLiveDraft), []);
   const draft =
-    queryReceiptId && storedDraft?.receiptId && storedDraft.receiptId !== queryReceiptId
+    queryReceiptId && liveDraft?.receiptId && liveDraft.receiptId !== queryReceiptId
       ? null
-      : storedDraft;
+      : liveDraft;
   const receiptQuery = useReceipt(queryReceiptId ?? draft?.receiptId ?? undefined);
   const categories = useExpenseCategories(profile?.country_code);
   const vehicles = useVehicles();
+  const expenses = useExpenses();
   const finalize = useFinalizeExpense();
   const discard = useDiscardReceipt();
   const [photoUrl, setPhotoUrl] = useState<string | null>(draft?.photoUri ?? null);
@@ -76,8 +79,10 @@ export default function ReviewReceiptScreen() {
         currency: profile?.default_currency ?? 'CAD',
         today: todayIso(),
         emptyDate: catchUp,
+        expenses: expenses.data,
+        defaultVehicleId: (vehicles.data ?? []).length === 1 ? vehicles.data?.[0]?.id : undefined,
       }),
-    [canonical, catchUp, extraction, profile?.default_currency],
+    [canonical, catchUp, expenses.data, extraction, profile?.default_currency, vehicles.data],
   );
 
   const { control, handleSubmit, watch, formState, reset } = useForm<ReceiptReviewValues>({
@@ -86,8 +91,8 @@ export default function ReviewReceiptScreen() {
   });
 
   useEffect(() => {
-    reset(defaults);
-  }, [defaults, reset]);
+    if (!formState.isDirty) reset(defaults);
+  }, [defaults, formState.isDirty, reset]);
 
   const categoryId = watch('category_id');
   const selected = canonical.find((row) => row.id === categoryId);
@@ -167,6 +172,7 @@ export default function ReviewReceiptScreen() {
           <Text style={styles.hint}>{t('expenses.ocrSkipped')}</Text>
         )}
       </Card>
+      {draft?.refining ? <WarningBanner tone="info" title={t('expenses.ocrRefining')} /> : null}
       <WarningBanner tone="info" title={t('expenses.suggestionOnly')} body={t('expenses.suggestionBody')} />
       {extractedChanged ? <WarningBanner tone="info" title={t('expenses.extractedChanged')} /> : null}
       {dateError ? <WarningBanner tone="danger" title={dateError} /> : null}
@@ -176,6 +182,7 @@ export default function ReviewReceiptScreen() {
         vehicles={vehicles.data ?? []}
         locale={locale}
         compact
+        showFuel={selected?.code === 'fuel' || Boolean(extraction?.fuel_quantity || extraction?.price_per_unit)}
         dateHint={catchUp ? t('expenses.pastDateHint') : undefined}
       />
       <Button

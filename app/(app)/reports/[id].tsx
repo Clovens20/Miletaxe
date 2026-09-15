@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
-import { Alert, StyleSheet, Text } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useMemo } from 'react';
+import { StyleSheet, Text } from 'react-native';
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/Button';
@@ -13,14 +13,14 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import {
   completeExpenseLines,
   expensesWithoutReceipt,
+  headlineExpenseRows,
   incompleteExpenseLines,
   incompleteMileageDays,
   isCompleteMileageDay,
   lineRef,
   monthlyBuckets,
 } from '@/features/reports/explain';
-import { reportSummary, useReports } from '@/features/reports/hooks';
-import { downloadAccountantPackage, shareAccountantPackage } from '@/features/reports/share';
+import { reportSummary, useAccountantPdfActions, useReports } from '@/features/reports/hooks';
 import { localize } from '@/lib/i18n/localize';
 import { formatDate, formatDistance, formatMoney, formatYearMonth } from '@/lib/format';
 import type { CurrencyCode, DistanceUnit, SupportedLocale } from '@/types/domain';
@@ -37,10 +37,9 @@ export default function ReportDetailScreen() {
   const summary = report ? reportSummary(report) : null;
   const unit = (summary?.totals.unit ?? profile?.default_distance_unit ?? 'km') as DistanceUnit;
   const currency = (summary?.totals.currency ?? profile?.default_currency ?? 'CAD') as CurrencyCode;
-  const [sharing, setSharing] = useState(false);
-  const [downloading, setDownloading] = useState(false);
   const country = profile?.country_code;
   const prefixes = locale === 'en' ? { expense: 'E', income: 'I', mileage: 'M' } : { expense: 'D', income: 'R', mileage: 'K' };
+  const pdf = useAccountantPdfActions(summary, locale, country);
 
   const derived = useMemo(() => {
     if (!summary) return null;
@@ -50,35 +49,9 @@ export default function ReportDetailScreen() {
       noPhoto: expensesWithoutReceipt(summary),
       incompleteDays: incompleteMileageDays(summary),
       months: monthlyBuckets(summary),
+      categories: headlineExpenseRows(summary, locale, t('reports.uncategorized')),
     };
-  }, [summary]);
-
-  const send = async () => {
-    if (!summary) return;
-    setSharing(true);
-    try {
-      await shareAccountantPackage(summary, locale, country);
-    } catch {
-      Alert.alert(t('common.error'), t('reports.shareFailed'));
-    } finally {
-      setSharing(false);
-    }
-  };
-
-  const download = async () => {
-    if (!summary) return;
-    setDownloading(true);
-    try {
-      const result = await downloadAccountantPackage(summary, locale, country);
-      if (result === 'saved') {
-        Alert.alert(t('reports.downloadPdf'), t('reports.downloadOk'));
-      }
-    } catch {
-      Alert.alert(t('common.error'), t('reports.downloadFailed'));
-    } finally {
-      setDownloading(false);
-    }
-  };
+  }, [locale, summary, t]);
 
   return (
     <Screen title={t('reports.detailTitle')} scroll>
@@ -95,13 +68,6 @@ export default function ReportDetailScreen() {
               })}
             </Text>
             {summary.profile.full_name ? <Text style={styles.meta}>{summary.profile.full_name}</Text> : null}
-          </Card>
-
-          <Card>
-            <Text style={styles.section}>{t('reports.howToTitle')}</Text>
-            <Text style={styles.meta}>{t('reports.howTo1')}</Text>
-            <Text style={styles.meta}>{t('reports.howTo2')}</Text>
-            <Text style={styles.meta}>{t('reports.howTo3')}</Text>
           </Card>
 
           {derived.noPhoto.length || derived.incomplete.length || derived.incompleteDays.length || summary.findings.length ? (
@@ -129,35 +95,41 @@ export default function ReportDetailScreen() {
           )}
 
           <Card>
-            <Text style={styles.section}>{t('reports.totals')}</Text>
-            <Text style={styles.meta}>{t('reports.totalsHint')}</Text>
+            <Text style={styles.section}>{t('reports.headline')}</Text>
+            <Text style={styles.meta}>{t('reports.headlineHint')}</Text>
             <ListRow
-              title={t('home.kmDriven')}
-              right={formatDistance(summary.totals.recorded_distance, unit, locale, country)}
-            />
-            <ListRow
-              title={`${t('home.expensesTotal')} (${summary.totals.expense_count})`}
-              right={formatMoney(summary.totals.recorded_expenses, currency, locale, country)}
-            />
-            <ListRow
-              title={`${t('home.incomeTotal')} (${summary.totals.income_count})`}
+              title={t('reports.incomeTotal')}
               right={formatMoney(summary.totals.recorded_income, currency, locale, country)}
+            />
+            <ListRow
+              title={t('reports.expenseTotal')}
+              right={formatMoney(summary.totals.recorded_expenses, currency, locale, country)}
             />
           </Card>
 
-          {summary.expenses_by_category.length ? (
-            <>
-              <Text style={styles.section}>{t('reports.byCategory')}</Text>
-              {summary.expenses_by_category.map((row, index) => (
+          <Card>
+            <Text style={styles.section}>{t('reports.expenseBreakdown')}</Text>
+            {derived.categories
+              .filter((row) => row.featured)
+              .map((row) => (
                 <ListRow
-                  key={`${localize(row.category_i18n, locale, t('reports.uncategorized'))}-${index}`}
-                  title={localize(row.category_i18n, locale, t('reports.uncategorized'))}
-                  subtitle={`${row.count}`}
+                  key={row.code}
+                  title={row.label}
+                  subtitle={t('expenses.categoryCount', { count: row.count })}
                   right={formatMoney(row.total, currency, locale, country)}
                 />
               ))}
-            </>
-          ) : null}
+            {derived.categories
+              .filter((row) => !row.featured)
+              .map((row) => (
+                <ListRow
+                  key={`${row.code}-${row.label}`}
+                  title={row.label}
+                  subtitle={t('expenses.categoryCount', { count: row.count })}
+                  right={formatMoney(row.total, currency, locale, country)}
+                />
+              ))}
+          </Card>
 
           {summary.income_by_source.length ? (
             <>
@@ -240,18 +212,24 @@ export default function ReportDetailScreen() {
           )}
 
           <Text style={styles.note}>{t('reports.noRates')}</Text>
+          <Text style={styles.note}>{t('reports.previewHint')}</Text>
+          <Button
+            label={t('reports.previewDocument')}
+            onPress={() => router.push(`/(app)/reports/preview?id=${id}` as Href)}
+          />
           <Button
             label={t('reports.downloadPdf')}
-            loading={downloading}
-            disabled={sharing}
-            onPress={() => void download()}
+            variant="secondary"
+            loading={pdf.downloading}
+            disabled={pdf.sharing}
+            onPress={() => void pdf.download()}
           />
           <Button
             label={t('reports.sharePdf')}
-            variant="secondary"
-            loading={sharing}
-            disabled={downloading}
-            onPress={() => void send()}
+            variant="ghost"
+            loading={pdf.sharing}
+            disabled={pdf.downloading}
+            onPress={() => void pdf.share()}
           />
         </>
       ) : (
