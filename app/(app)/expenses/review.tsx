@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Image, StyleSheet, Text } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
@@ -141,7 +141,9 @@ export default function ReviewReceiptScreen() {
       extracted: extraction,
     });
     clearReceiptDraft();
-    router.replace(catchUp ? '/(app)/expenses/past?added=1' : '/(app)/(tabs)/expenses');
+    router.replace(
+      (catchUp ? '/(app)/expenses/past?added=1' : '/(app)/expenses/scan?added=1') as Href,
+    );
   });
 
   if (!draft && !receiptQuery.data) {
@@ -184,6 +186,7 @@ export default function ReviewReceiptScreen() {
         compact
         showFuel={selected?.code === 'fuel' || Boolean(extraction?.fuel_quantity || extraction?.price_per_unit)}
         dateHint={catchUp ? t('expenses.pastDateHint') : undefined}
+        pastDate={catchUp}
       />
       <Button
         label={t('expenses.confirmSave')}
@@ -196,7 +199,7 @@ export default function ReviewReceiptScreen() {
         onPress={async () => {
           if (receiptId) await discard.mutateAsync(receiptId);
           clearReceiptDraft();
-          router.replace(catchUp ? '/(app)/expenses/past' : '/(app)/(tabs)/expenses');
+          router.replace((catchUp ? '/(app)/expenses/past' : '/(app)/expenses/scan') as Href);
         }}
       />
     </Screen>

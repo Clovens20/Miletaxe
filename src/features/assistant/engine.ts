@@ -273,27 +273,6 @@ function missingTotals(input: AssistantAnalyzeInput): AssistantSignal[] {
   return out;
 }
 
-function expensesWithoutDocument(input: AssistantAnalyzeInput): AssistantSignal[] {
-  const out: AssistantSignal[] = [];
-  const byId = Object.fromEntries(input.categories.map((row) => [row.id, row]));
-  for (const row of input.expenses) {
-    if (row.receipt_id) continue;
-    const category = row.category_id ? byId[row.category_id] : undefined;
-    if (category && !category.requires_receipt) continue;
-    const item = signal(input, 'expense_without_document', {
-      fingerprint: `expense_without_document:expense:${row.id}`,
-      entity_type: 'expense',
-      entity_id: row.id,
-      related_entity_id: null,
-      confidence: category?.requires_receipt ? 'high' : 'medium',
-      evidence: { vendor_name: row.vendor_name, category_code: category?.code ?? null },
-      proposed_patch: null,
-    });
-    if (item) out.push(item);
-  }
-  return out;
-}
-
 function unusualAmounts(input: AssistantAnalyzeInput): AssistantSignal[] {
   const check = checkOf(input, 'unusual_expense_amount');
   const minSample = numConfig(check?.config, 'min_sample', 3);
@@ -466,7 +445,6 @@ export function analyzeRecords(input: AssistantAnalyzeInput): AssistantSignal[] 
     ...inconsistentOdometer(input),
     ...duplicateExpenses(input, 'duplicate_receipt', true),
     ...missingTotals(input),
-    ...expensesWithoutDocument(input),
     ...unusualAmounts(input),
     ...missingDates(input),
     ...duplicateExpenses(input, 'duplicate_transaction', false),

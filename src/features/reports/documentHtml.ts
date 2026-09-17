@@ -3,7 +3,6 @@ import { formatDate, formatDistance, formatMoney, formatYearMonth } from '@/lib/
 import { localize } from '@/lib/i18n/localize';
 import {
   completeExpenseLines,
-  expensesWithoutReceipt,
   groupByMonth,
   headlineExpenseRows,
   incompleteExpenseLines,
@@ -44,7 +43,6 @@ type Copy = {
   expenseBreakdown: string;
   first: string;
   firstNone: string;
-  missingReceipts: string;
   incompleteExpenses: string;
   incompleteMileage: string;
   snapshot: string;
@@ -113,7 +111,6 @@ function copy(locale: SupportedLocale): Copy {
       expenseBreakdown: 'Expenses by type',
       first: 'Review first',
       firstNone: 'No gaps flagged in this package.',
-      missingReceipts: '{count} complete expense(s) with no photo attached',
       incompleteExpenses: '{count} incomplete expense(s) — not included in totals',
       incompleteMileage: '{count} incomplete mileage day(s) — kilometres not counted',
       snapshot: 'Snapshot',
@@ -181,7 +178,6 @@ function copy(locale: SupportedLocale): Copy {
     expenseBreakdown: 'Dépenses par type',
     first: 'À traiter en premier',
     firstNone: 'Aucun écart signalé dans ce dossier.',
-    missingReceipts: '{count} dépense(s) complète(s) sans photo jointe',
     incompleteExpenses: '{count} dépense(s) incomplète(s) — non incluses dans les totaux',
     incompleteMileage: '{count} jour(s) de km incomplet(s) — kilométrage non compté',
     snapshot: 'Synthèse',
@@ -276,7 +272,6 @@ export function accountantPackageHtml(
   const prefixes = locale === 'en' ? { expense: 'E', income: 'I', mileage: 'M' } : { expense: 'D', income: 'R', mileage: 'K' };
   const completeExpenses = completeExpenseLines(summary);
   const incompleteExpenses = incompleteExpenseLines(summary);
-  const noPhoto = expensesWithoutReceipt(summary);
   const incompleteDays = incompleteMileageDays(summary);
   const months = monthlyBuckets(summary);
   const showMonths = summary.period.kind !== 'monthly' && months.length > 1;
@@ -289,7 +284,6 @@ export function accountantPackageHtml(
   const otherRows = headlineRows.filter((row) => !row.featured);
 
   const flags: string[] = [];
-  if (noPhoto.length) flags.push(fill(t.missingReceipts, { count: noPhoto.length }));
   if (incompleteExpenses.length) flags.push(fill(t.incompleteExpenses, { count: incompleteExpenses.length }));
   if (incompleteDays.length) flags.push(fill(t.incompleteMileage, { count: incompleteDays.length }));
 

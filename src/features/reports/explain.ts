@@ -28,10 +28,6 @@ export function incompleteMileageDays(summary: AccountantPackageSummary) {
   return summary.daily_mileage.filter((row) => !isCompleteMileageDay(row));
 }
 
-export function expensesWithoutReceipt(summary: AccountantPackageSummary): PackageExpenseLine[] {
-  return completeExpenseLines(summary).filter((row) => !row.has_receipt);
-}
-
 export type MonthlyBucket = {
   month: string;
   expenses: number;

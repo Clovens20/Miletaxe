@@ -12,7 +12,6 @@ import { WarningBanner } from '@/components/ui/WarningBanner';
 import { useAuth } from '@/features/auth/AuthProvider';
 import {
   completeExpenseLines,
-  expensesWithoutReceipt,
   headlineExpenseRows,
   incompleteExpenseLines,
   incompleteMileageDays,
@@ -46,7 +45,6 @@ export default function ReportDetailScreen() {
     return {
       complete: completeExpenseLines(summary),
       incomplete: incompleteExpenseLines(summary),
-      noPhoto: expensesWithoutReceipt(summary),
       incompleteDays: incompleteMileageDays(summary),
       months: monthlyBuckets(summary),
       categories: headlineExpenseRows(summary, locale, t('reports.uncategorized')),
@@ -70,12 +68,9 @@ export default function ReportDetailScreen() {
             {summary.profile.full_name ? <Text style={styles.meta}>{summary.profile.full_name}</Text> : null}
           </Card>
 
-          {derived.noPhoto.length || derived.incomplete.length || derived.incompleteDays.length || summary.findings.length ? (
+          {derived.incomplete.length || derived.incompleteDays.length || summary.findings.length ? (
             <>
               <Text style={styles.section}>{t('reports.reviewFirst')}</Text>
-              {derived.noPhoto.length ? (
-                <WarningBanner tone="warning" title={t('reports.missingReceipts', { count: derived.noPhoto.length })} />
-              ) : null}
               {derived.incomplete.length ? (
                 <WarningBanner tone="warning" title={t('reports.incompleteExpenses', { count: derived.incomplete.length })} />
               ) : null}

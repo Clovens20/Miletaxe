@@ -97,6 +97,7 @@ export default function ExpensesScreen() {
         <EmptyState
           icon={rentalFilter ? 'key-outline' : 'receipt-outline'}
           title={rentalFilter ? t('expenses.rentalEmpty') : t('expenses.empty')}
+          body={rentalFilter ? undefined : t('expenses.emptyBody')}
         />
       ) : null}
       {filtered.map((row) => {
@@ -124,6 +125,11 @@ export default function ExpensesScreen() {
         <Button label={t('rental.logDay')} onPress={() => router.push('/(app)/rental/daily' as Href)} />
       ) : null}
       <Button label={t('expenses.capture')} onPress={() => router.push('/(app)/expenses/scan')} />
+      <Button
+        label={t('expenses.typeManually')}
+        variant="secondary"
+        onPress={() => router.push('/(app)/expenses/manual')}
+      />
       <Button
         label={t('expenses.pastTitle')}
         variant="secondary"

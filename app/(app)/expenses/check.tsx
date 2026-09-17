@@ -207,6 +207,11 @@ export default function ExpenseCheckScreen() {
 
       <Button label={t('expenses.capture')} onPress={() => router.push('/(app)/expenses/scan')} />
       <Button
+        label={t('expenses.typeManually')}
+        variant="secondary"
+        onPress={() => router.push('/(app)/expenses/manual')}
+      />
+      <Button
         label={t('expenses.history')}
         variant="secondary"
         onPress={() => router.push('/(app)/expenses/history')}

@@ -116,13 +116,8 @@ export function useIntegrityFindings() {
         }
       }
 
-      const categoryById = Object.fromEntries((categories.data ?? []).map((row) => [row.id, row]));
       for (const expense of expenses.data ?? []) {
         if (!expense.category_id) push('expense_missing_category', 'expense', expense.id);
-        const category = expense.category_id ? categoryById[expense.category_id] : undefined;
-        if (category?.requires_receipt && !expense.receipt_id) {
-          push('expense_missing_receipt', 'expense', expense.id);
-        }
         if (expense.status === 'needs_review') {
           push('expense_needs_review', 'expense', expense.id);
         }

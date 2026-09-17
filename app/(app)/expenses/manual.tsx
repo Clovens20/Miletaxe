@@ -90,22 +90,19 @@ export default function ManualExpenseScreen() {
   return (
     <Screen
       title={catchUp ? t('expenses.manualTitle') : t('expenses.add')}
-      subtitle={catchUp ? t('expenses.manualSubtitle') : undefined}
+      subtitle={t('expenses.manualSubtitle')}
       scroll
     >
       {catchUp ? <WarningBanner tone="info" title={t('expenses.pastLead')} /> : null}
-      {selected?.requires_receipt ? (
-        <WarningBanner tone="warning" title={t('expenses.receiptRequired')} body={t('expenses.manualNoReceiptNote')} />
-      ) : (
-        <WarningBanner tone="info" title={t('expenses.manualNoReceiptNote')} />
-      )}
       {dateError ? <WarningBanner tone="danger" title={dateError} /> : null}
       <ReceiptFormFields
         control={control}
         categories={canonical}
         vehicles={vehicles.data ?? []}
         locale={locale}
-        dateHint={catchUp ? t('expenses.pastDateHint') : undefined}
+        dateHint={catchUp ? t('expenses.pastDateHint') : t('expenses.manualDateHint')}
+        notesHint={t('expenses.notesLostHint')}
+        pastDate={catchUp}
       />
       <Button
         label={t('common.save')}

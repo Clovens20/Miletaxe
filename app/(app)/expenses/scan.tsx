@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
+import { WarningBanner } from '@/components/ui/WarningBanner';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { getReceiptDraft, setReceiptDraft } from '@/features/expenses/draft';
 import { useCreateReceipt, useReceiptOcr } from '@/features/expenses/hooks';
@@ -20,8 +21,9 @@ import { captureReceiptImage, pickReceiptImage } from '@/lib/media/pickImage';
 import { colors, radius, type } from '@/theme';
 
 export default function ScanReceiptScreen() {
-  const { mode } = useLocalSearchParams<{ mode?: string }>();
+  const { mode, added } = useLocalSearchParams<{ mode?: string; added?: string }>();
   const catchUp = mode === 'past';
+  const justSaved = added === '1';
   const { t } = useTranslation();
   const router = useRouter();
   const { user } = useAuth();
@@ -108,6 +110,7 @@ export default function ScanReceiptScreen() {
       scroll
     >
       {host}
+      {justSaved ? <WarningBanner tone="info" title={t('expenses.savedNext')} /> : null}
       {photo ? <Image source={{ uri: photo }} style={styles.photo} /> : null}
       <Button
         label={catchUp ? t('expenses.uploadPhoto') : t('expenses.takePhoto')}
@@ -134,7 +137,7 @@ export default function ScanReceiptScreen() {
       />
       <Button
         label={t('expenses.typeManually')}
-        variant="ghost"
+        variant="secondary"
         disabled={busy}
         onPress={() => router.push((catchUp ? '/(app)/expenses/manual?mode=past' : '/(app)/expenses/manual') as Href)}
       />
@@ -144,7 +147,16 @@ export default function ScanReceiptScreen() {
       {photo && status === 'ocrFailed' ? (
         <Button label={t('expenses.analyze')} loading={busy} onPress={() => void analyze(photo)} />
       ) : null}
-      <Button label={t('common.cancel')} variant="ghost" disabled={busy} onPress={() => router.back()} />
+      {justSaved ? (
+        <Button
+          label={t('expenses.pastDone')}
+          variant="secondary"
+          disabled={busy}
+          onPress={() => router.replace('/(app)/(tabs)/expenses')}
+        />
+      ) : (
+        <Button label={t('common.cancel')} variant="ghost" disabled={busy} onPress={() => router.back()} />
+      )}
     </Screen>
   );
 }
