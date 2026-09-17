@@ -26,4 +26,8 @@ export function setAppLocale(locale: SupportedLocale) {
   void i18n.changeLanguage(locale);
 }
 
+export function localeForCountry(countryCode?: string | null): SupportedLocale {
+  return countryCode === 'US' ? 'en' : 'fr';
+}
+
 export { i18n };

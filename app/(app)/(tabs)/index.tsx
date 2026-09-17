@@ -46,7 +46,7 @@ export default function HomeScreen() {
     <Screen scroll home={false} back={false}>
       <View style={styles.homeHead}>
         <View style={styles.homeCopy}>
-          <Text style={styles.kicker}>{t('home.taxYear', { year: dashboard.taxYear?.year ?? 2026 })}</Text>
+          <Text style={styles.kicker}>{t('home.taxYear', { year: dashboard.taxYear.year })}</Text>
           <Text style={styles.title}>{t('home.greeting', { name: firstName ? ` ${firstName}` : '' })}</Text>
         </View>
         <Pressable
@@ -201,7 +201,7 @@ export default function HomeScreen() {
         <MiniMetric
           label={t('home.expensesTotal')}
           value={formatMoney(dashboard.yearExpenses, dashboard.currency, locale, profile?.country_code)}
-          hint={t('home.taxYear', { year: dashboard.taxYear?.year ?? 2026 })}
+          hint={t('home.taxYear', { year: dashboard.taxYear.year })}
         />
         <MiniMetric
           label={t('home.incomeTotal')}

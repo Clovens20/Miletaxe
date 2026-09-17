@@ -76,6 +76,8 @@ export type ExpenseFilters = {
   query?: string;
   categoryId?: string;
   month?: string;
+  from?: string;
+  to?: string;
   status?: ExpenseStatus | 'all';
 };
 

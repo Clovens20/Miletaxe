@@ -105,12 +105,7 @@ export const fallbackJurisdictions: JurisdictionRecord[] = [
   })),
 ];
 
-export const fallbackTaxYears: TaxYearRecord[] = [
-  { id: 'ca-2025', country_code: 'CA', year: 2025, starts_on: '2025-01-01', ends_on: '2025-12-31', is_current: false },
-  { id: 'ca-2026', country_code: 'CA', year: 2026, starts_on: '2026-01-01', ends_on: '2026-12-31', is_current: true },
-  { id: 'us-2025', country_code: 'US', year: 2025, starts_on: '2025-01-01', ends_on: '2025-12-31', is_current: false },
-  { id: 'us-2026', country_code: 'US', year: 2026, starts_on: '2026-01-01', ends_on: '2026-12-31', is_current: true },
-];
+export const fallbackTaxYears: TaxYearRecord[] = [];
 
 export const fallbackOccupations: OccupationRecord[] = [
   { id: 'occ-rideshare', country_code: null, code: 'rideshare', name_i18n: L('Chauffeur covoiturage (Uber, Lyft…)', 'Rideshare driver (Uber, Lyft…)'), sort_order: 10 },

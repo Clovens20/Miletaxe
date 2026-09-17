@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { getSupabase, isLocalMode } from '@/lib/supabase/client';
+import { todayIso } from '@/lib/format';
 import { localize } from '@/lib/i18n/localize';
 import type { LocalizedString, SupportedLocale } from '@/types/domain';
+import { calendarYearNumber, mergeCalendarTaxYears } from './years';
 import {
   fallbackAssistantChecks,
   fallbackCountries,
@@ -66,12 +68,21 @@ export function useJurisdictions(countryCode?: string | null) {
 }
 
 export function useTaxYears(countryCode?: string | null) {
+  const today = todayIso();
   return useQuery({
-    queryKey: ['catalog', 'tax-years', countryCode],
-    queryFn: () =>
-      readTable<TaxYearRecord>('tax_years', fallbackTaxYears, (rows) =>
-        countryCode ? rows.filter((row) => row.country_code === countryCode) : rows,
-      ),
+    queryKey: ['catalog', 'tax-years', countryCode, calendarYearNumber(today)],
+    queryFn: async () => {
+      if (!isLocalMode()) {
+        await getSupabase().rpc('ensure_calendar_tax_years', {
+          p_country: countryCode ?? null,
+          p_today: today,
+        });
+      }
+      const rows = await readTable<TaxYearRecord>('tax_years', fallbackTaxYears, (list) =>
+        countryCode ? list.filter((row) => row.country_code === countryCode) : list,
+      );
+      return mergeCalendarTaxYears(rows, countryCode, today);
+    },
     ...catalogQuery,
   });
 }
@@ -149,9 +160,7 @@ export function useAssistantChecks() {
   });
 }
 
-export function currentTaxYear(years: TaxYearRecord[] | undefined): TaxYearRecord | undefined {
-  return years?.find((year) => year.is_current) ?? years?.[0];
-}
+export { calendarYearNumber, currentTaxYear } from './years';
 
 export function labelOf(
   value: { name_i18n: LocalizedString } | null | undefined,

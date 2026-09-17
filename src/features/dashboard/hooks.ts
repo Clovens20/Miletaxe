@@ -14,7 +14,7 @@ import { completenessTone, dateOfTimestamp, dossierCompleteness, inDateRange } f
 export function useHomeDashboard() {
   const { profile } = useAuth();
   const years = useTaxYears(profile?.country_code);
-  const taxYear = currentTaxYear(years.data);
+  const taxYear = currentTaxYear(years.data, profile?.country_code);
   const unit = (profile?.default_distance_unit ?? 'km') as DistanceUnit;
   const currency = (profile?.default_currency ?? 'CAD') as CurrencyCode;
   const today = todayIso();

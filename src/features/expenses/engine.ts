@@ -178,6 +178,8 @@ export function filterExpenseList(
   return items.filter((row) => {
     if (filters.categoryId && !matchesCategoryFilter(row, filters.categoryId, categories)) return false;
     if (filters.month && yearMonthOf(row.incurred_on) !== filters.month) return false;
+    if (filters.from && row.incurred_on < filters.from) return false;
+    if (filters.to && row.incurred_on > filters.to) return false;
     if (filters.status && filters.status !== 'all' && row.status !== filters.status) return false;
     if (query) {
       const haystack = [row.vendor_name, row.notes, row.kind === 'rental' ? 'location rental loueur' : '']
@@ -199,6 +201,8 @@ export function filterExpenses(
   return expenses.filter((row) => {
     if (filters.categoryId && !matchesCategoryFilter(row, filters.categoryId, categories)) return false;
     if (filters.month && yearMonthOf(row.incurred_on) !== filters.month) return false;
+    if (filters.from && row.incurred_on < filters.from) return false;
+    if (filters.to && row.incurred_on > filters.to) return false;
     if (filters.status && filters.status !== 'all' && row.status !== filters.status) return false;
     if (query) {
       const haystack = [row.vendor_name, row.reference_number, row.notes, row.payment_method]

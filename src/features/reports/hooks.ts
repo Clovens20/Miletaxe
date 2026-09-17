@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import { PRODUCT } from '@/lib/constants';
 import { getSupabase, isLocalMode } from '@/lib/supabase/client';
+import { todayIso } from '@/lib/format';
 import { loadLocal, newId, updateLocal } from '@/lib/local/store';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useVehicles } from '@/features/vehicles/hooks';
@@ -19,6 +20,7 @@ import {
   useReportSections,
   useTaxYears,
 } from '@/features/tax-config/hooks';
+import type { TaxYearRecord } from '@/features/tax-config/types';
 import { buildAccountantPackage, type AccountantPackageSummary } from '@/features/reports/package';
 import { downloadAccountantPackage, shareAccountantPackage } from '@/features/reports/share';
 import {
@@ -37,6 +39,25 @@ export type GenerateReportInput = {
   half?: 1 | 2;
   month?: string;
 };
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function persistedTaxYear(year: TaxYearRecord): Promise<TaxYearRecord> {
+  if (isLocalMode() || UUID_RE.test(year.id)) return year;
+  const { data } = await getSupabase().rpc('ensure_calendar_tax_years', {
+    p_country: year.country_code,
+    p_today: todayIso(),
+  });
+  const match = (Array.isArray(data) ? data : []).find(
+    (row) =>
+      row &&
+      typeof row === 'object' &&
+      'year' in row &&
+      Number((row as TaxYearRecord).year) === year.year &&
+      (row as TaxYearRecord).country_code === year.country_code,
+  ) as TaxYearRecord | undefined;
+  return match ?? year;
+}
 
 export function reportSummary(row: TaxReport): AccountantPackageSummary | null {
   const raw = row.summary;
@@ -68,7 +89,7 @@ export function useReports() {
 export function usePreferredReportPeriod(): ReportPeriod | undefined {
   const { profile } = useAuth();
   const years = useTaxYears(profile?.country_code);
-  const taxYear = currentTaxYear(years.data);
+  const taxYear = currentTaxYear(years.data, profile?.country_code);
   if (!taxYear) return undefined;
   return resolveReportPeriod(taxYear, preferredPeriodInput(profileReportingCadence(profile?.reporting_cadence), taxYear));
 }
@@ -85,14 +106,15 @@ export function useGenerateReport() {
   const income = useIncome();
   const rentalDays = useRentalDays();
   const findings = useIntegrityFindings();
-  const taxYear = currentTaxYear(years.data);
+  const taxYear = currentTaxYear(years.data, profile?.country_code);
   const client = useQueryClient();
 
   return useMutation({
     mutationFn: async (input?: GenerateReportInput) => {
-      if (!user || !taxYear) throw new Error('missing_context');
+      if (!user) throw new Error('missing_context');
+      const year = await persistedTaxYear(taxYear);
       const cadence = profileReportingCadence(profile?.reporting_cadence);
-      const period = resolveReportPeriod(taxYear, input ?? preferredPeriodInput(cadence, taxYear));
+      const period = resolveReportPeriod(year, input ?? preferredPeriodInput(cadence, year));
       const summary = buildAccountantPackage({
         period,
         profile,
@@ -109,7 +131,7 @@ export function useGenerateReport() {
 
       const row = {
         user_id: user.id,
-        tax_year_id: taxYear.id,
+        tax_year_id: year.id,
         jurisdiction_id: profile?.jurisdiction_id,
         status: 'generated' as const,
         generated_at: new Date().toISOString(),

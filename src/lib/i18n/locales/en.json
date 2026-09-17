@@ -108,6 +108,8 @@
     "placeSubtitle": "Country and region determine categories and the package layout for your accountant.",
     "country": "Country",
     "jurisdiction": "Province or state",
+    "language": "App language",
+    "languageHint": "Based on your country. You can change it later in Settings.",
     "unitsTitle": "Units and currency",
     "unitsSubtitle": "You can change these later. They follow your country first.",
     "distanceUnit": "Distance",
@@ -404,6 +406,7 @@
     "summaryTitle": "Monthly summary",
     "summarySubtitle": "Totals of confirmed expenses, with no tax calculation.",
     "summaryCount": "{{count}} confirmed expense(s)",
+    "tabTotal": "Total expenses",
     "summaryEmpty": "No confirmed expenses this month.",
     "checkTitle": "Review my expenses",
     "checkSubtitle": "A snapshot of your entries, whenever you want. Nothing is sent to your accountant.",
@@ -457,7 +460,10 @@
     "kindPlatform": "Platform",
     "kindInvoice": "Invoice",
     "kindCash": "Cash",
-    "kindOther": "Other"
+    "kindOther": "Other",
+    "total": "Total income",
+    "totalCount": "{{count}} item(s)",
+    "emptyPeriod": "No income in this period."
   },
   "reports": {
     "title": "Accountant packages",
@@ -586,6 +592,7 @@
     "language": "Language",
     "languageFr": "Français",
     "languageEn": "English",
+    "languageHint": "A US account starts in English. You can switch to French whenever you like.",
     "jurisdiction": "Country and region",
     "units": "Units",
     "signOut": "Sign out",

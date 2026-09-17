@@ -15,6 +15,7 @@ import {
   useJurisdictions,
   useOccupations,
 } from '@/features/tax-config/hooks';
+import { localeForCountry, setAppLocale } from '@/lib/i18n';
 import type { SupportedLocale } from '@/types/domain';
 import { colors, type } from '@/theme';
 
@@ -28,6 +29,7 @@ export default function OnboardingScreen() {
   const [fullName, setFullName] = useState('');
   const [occupancy, setOccupancy] = useState('');
   const [countryCode, setCountryCode] = useState('CA');
+  const [preferredLocale, setPreferredLocale] = useState<SupportedLocale>(localeForCountry('CA'));
   const [jurisdictionId, setJurisdictionId] = useState('');
   const [unit, setUnit] = useState<'km' | 'mi'>('km');
   const [cadence, setCadence] = useState<'annual' | 'semiannual'>('annual');
@@ -60,6 +62,7 @@ export default function OnboardingScreen() {
         default_distance_unit: unit,
         default_currency: selectedCountry?.default_currency ?? 'CAD',
         reporting_cadence: cadence,
+        preferred_locale: preferredLocale,
         onboarding_completed_at: new Date().toISOString(),
       });
     } finally {
@@ -97,7 +100,24 @@ export default function OnboardingScreen() {
               setJurisdictionId('');
               const next = countries.data?.find((row) => row.code === value);
               if (next) setUnit(next.default_distance_unit);
+              const nextLocale = localeForCountry(value);
+              setPreferredLocale(nextLocale);
+              setAppLocale(nextLocale);
             }}
+          />
+          <Text style={styles.label}>{t('onboarding.language')}</Text>
+          <Text style={styles.subtitle}>{t('onboarding.languageHint')}</Text>
+          <SegmentedControl
+            value={preferredLocale}
+            onChange={(value) => {
+              const next = value as SupportedLocale;
+              setPreferredLocale(next);
+              setAppLocale(next);
+            }}
+            options={[
+              { value: 'fr', label: t('settings.languageFr') },
+              { value: 'en', label: t('settings.languageEn') },
+            ]}
           />
           <Text style={styles.label}>{t('onboarding.jurisdiction')}</Text>
           <ChoiceList options={jurisdictionOptions} value={jurisdictionId} onChange={setJurisdictionId} />

@@ -39,7 +39,7 @@ export default function ReportsScreen() {
   const generate = useGenerateReport();
   const preferred = usePreferredReportPeriod();
   const years = useTaxYears(profile?.country_code);
-  const taxYear = currentTaxYear(years.data);
+  const taxYear = currentTaxYear(years.data, profile?.country_code);
   const locale = (i18n.language === 'en' ? 'en' : 'fr') as SupportedLocale;
   const cadence = profileReportingCadence(profile?.reporting_cadence);
   const [half, setHalf] = useState<'1' | '2'>(preferred?.half === 2 ? '2' : '1');

@@ -48,6 +48,7 @@ export default function SettingsScreen() {
         <ListRow title={t('settings.version')} subtitle={t('settings.versionValue', { version })} />
         <ListRow title={t('settings.support')} subtitle={PRODUCT.supportEmail} />
       </Card>
+      <Text style={styles.label}>{t('settings.language')}</Text>
       <SegmentedControl
         value={locale}
         onChange={(value) => {
@@ -60,6 +61,7 @@ export default function SettingsScreen() {
           { value: 'en', label: t('settings.languageEn') },
         ]}
       />
+      <Text style={styles.caption}>{t('settings.languageHint')}</Text>
       <Text style={styles.label}>{t('settings.cadence')}</Text>
       <SegmentedControl
         value={profile?.reporting_cadence === 'semiannual' ? 'semiannual' : 'annual'}
@@ -117,5 +119,9 @@ const styles = StyleSheet.create({
   hint: {
     ...type.caption,
     color: colors.info,
+  },
+  caption: {
+    ...type.caption,
+    color: colors.textSecondary,
   },
 });

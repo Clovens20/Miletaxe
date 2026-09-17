@@ -108,6 +108,8 @@
     "placeSubtitle": "Le pays et la région déterminent les catégories et le format du dossier pour votre comptable.",
     "country": "Pays",
     "jurisdiction": "Province ou État",
+    "language": "Langue de l'app",
+    "languageHint": "Selon le pays. Vous pourrez la changer plus tard dans les paramètres.",
     "unitsTitle": "Unités et monnaie",
     "unitsSubtitle": "Vous pourrez les modifier plus tard. Elles suivent d'abord votre pays.",
     "distanceUnit": "Distance",
@@ -404,6 +406,7 @@
     "summaryTitle": "Résumé mensuel",
     "summarySubtitle": "Totaux des dépenses confirmées, sans calcul d'impôt.",
     "summaryCount": "{{count}} dépense(s) confirmée(s)",
+    "tabTotal": "Total des dépenses",
     "summaryEmpty": "Aucune dépense confirmée pour ce mois.",
     "checkTitle": "Vérifier mes dépenses",
     "checkSubtitle": "Un aperçu de vos écritures, quand vous voulez. Rien n’est envoyé au comptable.",
@@ -457,7 +460,10 @@
     "kindPlatform": "Plateforme",
     "kindInvoice": "Facture",
     "kindCash": "Comptant",
-    "kindOther": "Autre"
+    "kindOther": "Autre",
+    "total": "Total des revenus",
+    "totalCount": "{{count}} revenu(s)",
+    "emptyPeriod": "Aucun revenu pour cette période."
   },
   "reports": {
     "title": "Dossiers pour le comptable",
@@ -586,6 +592,7 @@
     "language": "Langue",
     "languageFr": "Français",
     "languageEn": "English",
+    "languageHint": "Un compte aux États-Unis démarre en anglais. Vous pouvez passer au français quand vous voulez.",
     "jurisdiction": "Pays et région",
     "units": "Unités",
     "signOut": "Se déconnecter",
