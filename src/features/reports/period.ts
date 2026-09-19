@@ -33,6 +33,10 @@ export function monthsInTaxYear(taxYear: TaxYearRecord): string[] {
   return months.reverse();
 }
 
+function capToToday(end: string, today: string): string {
+  return end > today ? today : end;
+}
+
 export function resolveReportPeriod(
   taxYear: TaxYearRecord,
   input: { kind: ReportPeriodKind; half?: 1 | 2; month?: string },
@@ -41,16 +45,18 @@ export function resolveReportPeriod(
   if (input.kind === 'monthly') {
     const month = input.month ?? (today >= taxYear.starts_on && today <= taxYear.ends_on ? today.slice(0, 7) : taxYear.ends_on.slice(0, 7));
     const start = `${month}-01`;
-    const end = lastDayOfMonth(month);
+    const rawEnd = lastDayOfMonth(month);
+    const end = capToToday(rawEnd > taxYear.ends_on ? taxYear.ends_on : rawEnd, today);
+    const inProgress = end < rawEnd && end < taxYear.ends_on;
     return {
       kind: 'monthly',
       start: start < taxYear.starts_on ? taxYear.starts_on : start,
-      end: end > taxYear.ends_on ? taxYear.ends_on : end,
+      end,
       tax_year: taxYear.year,
       month,
       label_i18n: {
-        fr: `Mois de ${month} · ${taxYear.year}`,
-        en: `Month of ${month} · ${taxYear.year}`,
+        fr: inProgress ? `Mois de ${month} · à ce jour` : `Mois de ${month} · ${taxYear.year}`,
+        en: inProgress ? `Month of ${month} · year to date` : `Month of ${month} · ${taxYear.year}`,
       },
     };
   }
@@ -58,7 +64,11 @@ export function resolveReportPeriod(
   if (input.kind === 'semiannual') {
     const half = input.half ?? currentSemiannualHalf(today, taxYear);
     const start = half === 1 ? taxYear.starts_on : `${taxYear.year}-07-01`;
-    const end = half === 1 ? `${taxYear.year}-06-30` : taxYear.ends_on;
+    const rawEnd = half === 1 ? `${taxYear.year}-06-30` : taxYear.ends_on;
+    const end = capToToday(rawEnd, today);
+    const inProgress = end < rawEnd;
+    const closedFr = half === 1 ? `1er semestre ${taxYear.year}` : `2e semestre ${taxYear.year}`;
+    const closedEn = half === 1 ? `1st half ${taxYear.year}` : `2nd half ${taxYear.year}`;
     return {
       kind: 'semiannual',
       start,
@@ -66,20 +76,22 @@ export function resolveReportPeriod(
       tax_year: taxYear.year,
       half,
       label_i18n: {
-        fr: half === 1 ? `1er semestre ${taxYear.year}` : `2e semestre ${taxYear.year}`,
-        en: half === 1 ? `1st half ${taxYear.year}` : `2nd half ${taxYear.year}`,
+        fr: inProgress ? `${closedFr} — à ce jour` : closedFr,
+        en: inProgress ? `${closedEn} — year to date` : closedEn,
       },
     };
   }
 
+  const end = capToToday(taxYear.ends_on, today);
+  const inProgress = end < taxYear.ends_on;
   return {
     kind: 'annual',
     start: taxYear.starts_on,
-    end: taxYear.ends_on,
+    end,
     tax_year: taxYear.year,
     label_i18n: {
-      fr: `Année d'imposition ${taxYear.year}`,
-      en: `Tax year ${taxYear.year}`,
+      fr: inProgress ? `Année d'imposition ${taxYear.year} — à ce jour` : `Année d'imposition ${taxYear.year}`,
+      en: inProgress ? `Tax year ${taxYear.year} — year to date` : `Tax year ${taxYear.year}`,
     },
   };
 }

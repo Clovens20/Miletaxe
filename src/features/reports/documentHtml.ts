@@ -47,7 +47,6 @@ type Copy = {
   incompleteMileage: string;
   snapshot: string;
   totals: string;
-  totalsHint: string;
   distance: string;
   expenses: string;
   income: string;
@@ -91,6 +90,8 @@ type Copy = {
   kindOther: string;
   uncategorized: string;
   disclaimer: string;
+  official: string;
+  stamp: string;
 };
 
 function copy(locale: SupportedLocale): Copy {
@@ -115,7 +116,6 @@ function copy(locale: SupportedLocale): Copy {
       incompleteMileage: '{count} incomplete mileage day(s) — kilometres not counted',
       snapshot: 'Snapshot',
       totals: 'Recorded totals',
-      totalsHint: 'Sums of complete entries. Not taxable income or deductible amounts.',
       distance: 'Distance',
       expenses: 'Expenses',
       income: 'Income',
@@ -160,6 +160,8 @@ function copy(locale: SupportedLocale): Copy {
       uncategorized: 'Uncategorized',
       disclaimer:
         'This package gathers records the client entered. It is not a tax return and does not replace an accountant. MileTax does not calculate tax.',
+      official: 'Official MileTax package',
+      stamp: 'Ref. {code}',
     };
   }
   return {
@@ -182,7 +184,6 @@ function copy(locale: SupportedLocale): Copy {
     incompleteMileage: '{count} jour(s) de km incomplet(s) — kilométrage non compté',
     snapshot: 'Synthèse',
     totals: 'Totaux enregistrés',
-    totalsHint: 'Somme des écritures complètes. Ce ne sont pas des montants imposables ni déductibles.',
     distance: 'Distance',
     expenses: 'Dépenses',
     income: 'Revenus',
@@ -227,6 +228,8 @@ function copy(locale: SupportedLocale): Copy {
     uncategorized: 'Sans catégorie',
     disclaimer:
       'Ce dossier rassemble les écritures saisies par le client. Ce n’est pas une déclaration fiscale et il ne remplace pas un comptable. MileTax ne calcule pas d’impôt.',
+    official: 'Dossier officiel MileTax',
+    stamp: 'Réf. {code}',
   };
 }
 
@@ -257,10 +260,42 @@ function notesCell(...parts: Array<string | null | undefined>): string {
   return esc(parts.filter((part) => part && String(part).trim()).join(' · ') || '—');
 }
 
+function monthGroupHeading(
+  month: string,
+  count: number,
+  total: number,
+  locale: SupportedLocale,
+  country: string | null | undefined,
+  currency: string,
+  t: Copy,
+) {
+  return `${esc(formatYearMonth(month, locale, country))} · ${count} ${esc(t.lines)} · ${money(total, currency, locale, country)}`;
+}
+
+function packageStamp(summary: AccountantPackageSummary): string {
+  const raw = [
+    summary.generated_on ?? '',
+    summary.period.start,
+    summary.period.end,
+    summary.profile.full_name ?? '',
+    summary.totals.recorded_income.toFixed(2),
+    summary.totals.recorded_expenses.toFixed(2),
+    summary.totals.expense_count,
+    summary.totals.income_count,
+  ].join('|');
+  let hash = 2166136261;
+  for (let i = 0; i < raw.length; i += 1) {
+    hash ^= raw.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `MT-${summary.period.tax_year}-${(hash >>> 0).toString(16).toUpperCase().padStart(8, '0')}`;
+}
+
 export function accountantPackageHtml(
   summary: AccountantPackageSummary,
   locale: SupportedLocale,
   countryCode?: string | null,
+  logoSrc?: string,
 ): string {
   const t = copy(locale);
   const currency = summary.totals.currency;
@@ -279,6 +314,10 @@ export function accountantPackageHtml(
   const preparedOn = summary.generated_on
     ? formatDate(summary.generated_on, locale, country)
     : '—';
+  const stampCode = packageStamp(summary);
+  const stampLabel = fill(t.stamp, { code: stampCode });
+  const logo = logoSrc ?? '';
+  const logoImg = logo ? `<img src="${logo}" alt="${esc(PRODUCT.name)}" />` : '';
   const headlineRows = headlineExpenseRows(summary, locale, t.uncategorized);
   const featuredRows = headlineRows.filter((row) => row.featured);
   const otherRows = headlineRows.filter((row) => !row.featured);
@@ -320,7 +359,7 @@ export function accountantPackageHtml(
         .join('');
       const subtotal = rows.reduce((sum, row) => sum + row.amount, 0);
       const heading = month
-        ? `<p class="group">${esc(formatYearMonth(month, locale, country))} · ${rows.length} ${esc(t.lines)}</p>`
+        ? `<p class="group">${monthGroupHeading(month, rows.length, subtotal, locale, country, currency, t)}</p>`
         : '';
       const foot =
         showMonths && rows.length
@@ -360,7 +399,7 @@ export function accountantPackageHtml(
       const body = rows.map((row) => incomeRow(row, incomeIndex++)).join('');
       const subtotal = rows.reduce((sum, row) => sum + row.amount, 0);
       const heading = month
-        ? `<p class="group">${esc(formatYearMonth(month, locale, country))} · ${rows.length} ${esc(t.lines)}</p>`
+        ? `<p class="group">${monthGroupHeading(month, rows.length, subtotal, locale, country, currency, t)}</p>`
         : '';
       const foot =
         showMonths && rows.length
@@ -412,8 +451,8 @@ export function accountantPackageHtml(
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3" />
   <style>
-    @page { margin: 16mm; }
-    body { font-family: Helvetica, Arial, sans-serif; color: #0C140E; font-size: 11px; line-height: 1.45; }
+    @page { margin: 14mm 14mm 16mm 14mm; }
+    body { font-family: Helvetica, Arial, sans-serif; color: #0C140E; font-size: 11px; line-height: 1.45; margin: 0; }
     h1 { font-size: 20px; margin: 0 0 4px; }
     h2 { font-size: 14px; margin: 22px 0 8px; page-break-after: avoid; }
     h3 { font-size: 12px; margin: 16px 0 6px; }
@@ -430,20 +469,76 @@ export function accountantPackageHtml(
     .hero-label { font-size: 11px; color: #3E5344; margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.04em; }
     .hero-value { font-size: 26px; font-weight: 700; margin: 0; letter-spacing: -0.02em; }
     .hero-value.small { font-size: 20px; }
-    table { width: 100%; border-collapse: collapse; margin: 0 0 12px; }
-    th, td { text-align: left; padding: 5px 4px; border-bottom: 1px solid #C9E6CE; vertical-align: top; }
-    th { font-size: 10px; color: #3E5344; }
-    thead { display: table-header-group; }
-    tr { page-break-inside: avoid; }
+    .sheet { width: 100%; border-collapse: collapse; }
+    .sheet > thead { display: table-header-group; }
+    .sheet > tfoot { display: table-footer-group; }
+    .sheet > thead td, .sheet > tfoot td, .sheet > tbody > tr > td { border: 0; padding: 0; vertical-align: top; }
+    .page-head { display: table; width: 100%; padding: 0 0 8px; margin: 0 0 10px; border-bottom: 2px solid #188F2A; }
+    .page-head .mark { display: table-cell; width: 92px; vertical-align: middle; }
+    .page-head .mark img { width: 84px; height: auto; display: block; }
+    .page-head .meta { display: table-cell; vertical-align: middle; text-align: right; font-size: 10px; color: #3E5344; }
+    .page-head .meta strong { color: #0C140E; font-size: 12px; }
+    .page-foot { border-top: 1px solid #94C89C; padding: 6px 0 0; margin: 10px 0 0; font-size: 9px; color: #3E5344; }
+    .page-foot .left { float: left; }
+    .page-foot .right { float: right; }
+    .brand-hero { text-align: center; margin: 4px 0 18px; }
+    .brand-hero img { width: 240px; max-width: 72%; height: auto; }
+    .watermark {
+      position: fixed;
+      top: 38%;
+      left: 50%;
+      width: 320px;
+      height: 320px;
+      margin: -160px 0 0 -160px;
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: contain;
+      opacity: 0.07;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .content { position: relative; z-index: 1; }
+    .content table { width: 100%; border-collapse: collapse; margin: 0 0 12px; }
+    .content th, .content td { text-align: left; padding: 5px 4px; border-bottom: 1px solid #C9E6CE; vertical-align: top; }
+    .content th { font-size: 10px; color: #3E5344; }
+    .content thead { display: table-header-group; }
+    .content tr { page-break-inside: avoid; }
     .num { text-align: right; white-space: nowrap; }
     .totals td { font-weight: 700; }
     .subtotal td { font-weight: 700; border-top: 1px solid #0C140E; background: #F4F7F4; }
     .warn td { background: #FFF6E8; }
     .group { font-weight: 700; margin: 14px 0 4px; }
     .toc li { margin: 2px 0; }
+    ${logo ? `.watermark { background-image: url("${logo}"); }` : `.watermark, .page-head .mark, .brand-hero { display: none; }`}
   </style>
 </head>
 <body>
+  ${logo ? '<div class="watermark"></div>' : ''}
+  <table class="sheet">
+  <thead>
+    <tr><td>
+      <div class="page-head">
+        <div class="mark">${logoImg}</div>
+        <div class="meta">
+          <strong>${esc(PRODUCT.name)}</strong><br />
+          ${esc(periodLabel)}<br />
+          ${esc(stampLabel)}
+        </div>
+      </div>
+    </td></tr>
+  </thead>
+  <tfoot>
+    <tr><td>
+      <div class="page-foot">
+        <span class="left">${esc(t.official)} · ${esc(PRODUCT.name)}</span>
+        <span class="right">${esc(stampLabel)} · ${esc(preparedOn)}</span>
+      </div>
+    </td></tr>
+  </tfoot>
+  <tbody>
+  <tr><td>
+  <div class="content">
+  <div class="brand-hero">${logoImg}</div>
   <p class="kicker">${esc(t.docType)}</p>
   <h1>${esc(t.title)}</h1>
   <div class="cover">
@@ -452,6 +547,7 @@ export function accountantPackageHtml(
     <p><strong>${esc(t.preparedFor)}</strong> : ${esc(name)}${summary.profile.occupancy ? ` · ${esc(t.occupation)} : ${esc(summary.profile.occupancy)}` : ''}</p>
     ${accountant ? `<p><strong>${esc(t.recipient)}</strong> : ${esc(accountant)}</p>` : ''}
     <p class="muted">${esc(t.preparedOn)} ${esc(preparedOn)}</p>
+    <p><strong>${esc(stampLabel)}</strong></p>
   </div>
   <div class="banner">${esc(t.disclaimer)}</div>
 
@@ -510,7 +606,6 @@ export function accountantPackageHtml(
   }
 
   <h2>3. ${esc(t.snapshot)}</h2>
-  <p class="muted">${esc(t.totalsHint)}</p>
 
   <h3>${esc(t.bySource)}</h3>
   ${
@@ -592,6 +687,10 @@ export function accountantPackageHtml(
   }
 
   <p class="muted">${esc(t.disclaimer)}</p>
+  </div>
+  </td></tr>
+  </tbody>
+  </table>
 </body>
 </html>`;
 }

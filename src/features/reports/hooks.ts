@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-import { PRODUCT } from '@/lib/constants';
 import { getSupabase, isLocalMode } from '@/lib/supabase/client';
 import { todayIso } from '@/lib/format';
 import { loadLocal, newId, updateLocal } from '@/lib/local/store';
@@ -22,7 +21,9 @@ import {
 } from '@/features/tax-config/hooks';
 import type { TaxYearRecord } from '@/features/tax-config/types';
 import { buildAccountantPackage, type AccountantPackageSummary } from '@/features/reports/package';
-import { downloadAccountantPackage, shareAccountantPackage } from '@/features/reports/share';
+import { downloadAccountantPackage, emailAccountantPackage, shareAccountantPackage } from '@/features/reports/share';
+import { localize } from '@/lib/i18n/localize';
+import { PRODUCT } from '@/lib/constants';
 import {
   preferredPeriodInput,
   profileReportingCadence,
@@ -160,7 +161,9 @@ export function useAccountantPdfActions(
   country?: string | null,
 ) {
   const { t } = useTranslation();
-  const [busy, setBusy] = useState<'share' | 'download' | null>(null);
+  const { profile } = useAuth();
+  const [busy, setBusy] = useState<'share' | 'download' | 'email' | null>(null);
+  const accountantEmail = (profile?.accountant_email ?? summary?.profile.accountant_email ?? '').trim();
 
   const share = async () => {
     if (!summary) return;
@@ -189,10 +192,44 @@ export function useAccountantPdfActions(
     }
   };
 
+  const emailAccountant = async (onMissingEmail?: () => void) => {
+    if (!accountantEmail) {
+      Alert.alert(t('reports.sendToAccountant'), t('reports.sendToAccountantMissing'), [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('reports.sendToAccountantAdd'), onPress: onMissingEmail },
+      ]);
+      return;
+    }
+    if (!summary) return;
+    setBusy('email');
+    try {
+      const period = localize(summary.period.label_i18n, locale);
+      const accountantName = (profile?.accountant_name ?? summary.profile.accountant_name ?? '').trim();
+      const clientName = (profile?.full_name ?? summary.profile.full_name ?? '').trim();
+      await emailAccountantPackage(summary, locale, country, {
+        recipient: accountantEmail,
+        subject: t('reports.sendToAccountantSubject', { product: PRODUCT.name, period }),
+        body: t('reports.sendToAccountantBody', {
+          greetingName: accountantName ? ` ${accountantName}` : '',
+          product: PRODUCT.name,
+          period,
+          client: clientName,
+        }),
+      });
+    } catch {
+      Alert.alert(t('common.error'), t('reports.sendToAccountantFailed'));
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return {
     sharing: busy === 'share',
     downloading: busy === 'download',
+    emailing: busy === 'email',
+    accountantEmail,
     share,
     download,
+    emailAccountant,
   };
 }

@@ -1,8 +1,11 @@
 import { Directory, EncodingType, File, Paths } from 'expo-file-system';
+import * as Linking from 'expo-linking';
+import * as MailComposer from 'expo-mail-composer';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 
+import { getBrandLogoDataUri } from '@/features/reports/brandLogo';
 import { accountantPackageFilename, accountantPackageHtml } from '@/features/reports/documentHtml';
 import type { AccountantPackageSummary } from '@/features/reports/package';
 import type { SupportedLocale } from '@/types/domain';
@@ -36,7 +39,7 @@ async function prepareAccountantPdf(
   locale: SupportedLocale,
   countryCode?: string | null,
 ): Promise<PreparedPdf> {
-  const html = accountantPackageHtml(summary, locale, countryCode);
+  const html = accountantPackageHtml(summary, locale, countryCode, await getBrandLogoDataUri());
   const filename = accountantPackageFilename(summary);
   if (Platform.OS === 'web') {
     return { uri: '', filename, html };
@@ -80,6 +83,45 @@ export async function shareAccountantPackage(
 }
 
 export type DownloadPackageResult = 'saved' | 'cancelled';
+export type EmailPackageResult = 'sent' | 'saved' | 'cancelled' | 'shared';
+
+export async function emailAccountantPackage(
+  summary: AccountantPackageSummary,
+  locale: SupportedLocale,
+  countryCode: string | null | undefined,
+  input: { recipient: string; subject: string; body: string },
+): Promise<EmailPackageResult> {
+  const prepared = await prepareAccountantPdf(summary, locale, countryCode);
+  const recipient = input.recipient.trim();
+
+  if (Platform.OS !== 'web') {
+    const available = await MailComposer.isAvailableAsync();
+    if (available) {
+      const result = await MailComposer.composeAsync({
+        recipients: [recipient],
+        subject: input.subject,
+        body: input.body,
+        attachments: [prepared.uri],
+      });
+      if (result.status === MailComposer.MailComposerStatus.CANCELLED) return 'cancelled';
+      if (result.status === MailComposer.MailComposerStatus.SAVED) return 'saved';
+      return 'sent';
+    }
+  }
+
+  const mailto = `mailto:${encodeURIComponent(recipient)}?subject=${encodeURIComponent(input.subject)}&body=${encodeURIComponent(input.body)}`;
+  const canOpenMail = await Linking.canOpenURL(mailto);
+  if (canOpenMail) {
+    await Linking.openURL(mailto);
+    if (Platform.OS === 'web') {
+      await Print.printAsync({ html: prepared.html });
+    }
+    return 'sent';
+  }
+
+  await shareAccountantPackage(summary, locale, countryCode);
+  return 'shared';
+}
 
 export async function downloadAccountantPackage(
   summary: AccountantPackageSummary,

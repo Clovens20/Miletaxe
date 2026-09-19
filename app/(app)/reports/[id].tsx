@@ -213,17 +213,23 @@ export default function ReportDetailScreen() {
             onPress={() => router.push(`/(app)/reports/preview?id=${id}` as Href)}
           />
           <Button
+            label={t('reports.sendToAccountant')}
+            loading={pdf.emailing}
+            disabled={pdf.sharing || pdf.downloading}
+            onPress={() => void pdf.emailAccountant(() => router.push('/(app)/settings/accountant' as Href))}
+          />
+          <Button
             label={t('reports.downloadPdf')}
             variant="secondary"
             loading={pdf.downloading}
-            disabled={pdf.sharing}
+            disabled={pdf.sharing || pdf.emailing}
             onPress={() => void pdf.download()}
           />
           <Button
             label={t('reports.sharePdf')}
             variant="ghost"
             loading={pdf.sharing}
-            disabled={pdf.downloading}
+            disabled={pdf.downloading || pdf.emailing}
             onPress={() => void pdf.share()}
           />
         </>

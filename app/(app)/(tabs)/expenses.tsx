@@ -173,6 +173,11 @@ export default function ExpensesScreen() {
         onPress={() => router.push('/(app)/expenses/manual')}
       />
       <Button
+        label={t('more.internet')}
+        variant="secondary"
+        onPress={() => router.push('/(app)/settings/internet')}
+      />
+      <Button
         label={t('expenses.pastTitle')}
         variant="secondary"
         onPress={() => router.push('/(app)/expenses/past')}

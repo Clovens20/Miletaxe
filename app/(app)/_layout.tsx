@@ -1,9 +1,13 @@
 import { Stack } from 'expo-router';
 
+import { RecurringSync } from '@/features/recurring/RecurringSync';
 import { colors } from '@/theme';
 
 export default function AppLayout() {
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }} />
+    <>
+      <RecurringSync />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }} />
+    </>
   );
 }

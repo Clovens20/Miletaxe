@@ -263,6 +263,28 @@ export type Database = {
         };
         Update: Partial<Database['public']['Tables']['vehicle_rental_days']['Row']>;
       };
+      recurring_plans: {
+        Row: {
+          id: string;
+          user_id: string;
+          kind: 'internet';
+          vendor_name: string;
+          amount: number;
+          currency: string;
+          started_on: string;
+          ended_on: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database['public']['Tables']['recurring_plans']['Row']> & {
+          user_id: string;
+          vendor_name: string;
+          amount: number;
+          started_on: string;
+        };
+        Update: Partial<Database['public']['Tables']['recurring_plans']['Row']>;
+      };
       odometer_readings: {
         Row: {
           id: string;

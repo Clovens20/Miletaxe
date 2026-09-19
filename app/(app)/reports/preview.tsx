@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { useBrandLogoSrc } from '@/features/reports/brandLogo';
 import { DocumentPreview } from '@/features/reports/DocumentPreview';
 import { accountantPackageHtml } from '@/features/reports/documentHtml';
 import { reportSummary, useAccountantPdfActions, useReports } from '@/features/reports/hooks';
@@ -22,9 +23,10 @@ export default function ReportPreviewScreen() {
   const country = profile?.country_code;
   const report = reports.data?.find((row) => row.id === id);
   const summary = report ? reportSummary(report) : null;
+  const logoSrc = useBrandLogoSrc();
   const html = useMemo(
-    () => (summary ? accountantPackageHtml(summary, locale, country) : ''),
-    [country, locale, summary],
+    () => (summary ? accountantPackageHtml(summary, locale, country, logoSrc) : ''),
+    [country, locale, logoSrc, summary],
   );
   const pdf = useAccountantPdfActions(summary, locale, country);
 
@@ -37,16 +39,23 @@ export default function ReportPreviewScreen() {
         summary ? (
           <View style={styles.actions}>
             <Button
+              label={t('reports.sendToAccountant')}
+              loading={pdf.emailing}
+              disabled={pdf.sharing || pdf.downloading}
+              onPress={() => void pdf.emailAccountant(() => router.push('/(app)/settings/accountant' as Href))}
+            />
+            <Button
               label={t('reports.downloadPdf')}
+              variant="secondary"
               loading={pdf.downloading}
-              disabled={pdf.sharing}
+              disabled={pdf.sharing || pdf.emailing}
               onPress={() => void pdf.download()}
             />
             <Button
               label={t('reports.sharePdf')}
-              variant="secondary"
+              variant="ghost"
               loading={pdf.sharing}
-              disabled={pdf.downloading}
+              disabled={pdf.downloading || pdf.emailing}
               onPress={() => void pdf.share()}
             />
           </View>

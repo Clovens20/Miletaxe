@@ -42,11 +42,22 @@ export default function SettingsScreen() {
       <Card>
         <ListRow title={t('settings.profile')} subtitle={profile?.full_name ?? undefined} />
         <ListRow
+          icon="mail-outline"
+          title={t('settings.accountEmail')}
+          subtitle={user?.email ?? t('settings.accountEmailMissing')}
+        />
+        <ListRow
           title={t('settings.jurisdiction')}
           subtitle={[profile?.country_code, profile?.occupancy].filter(Boolean).join(' · ')}
         />
         <ListRow title={t('settings.version')} subtitle={t('settings.versionValue', { version })} />
         <ListRow title={t('settings.support')} subtitle={PRODUCT.supportEmail} />
+        <ListRow
+          icon="wifi-outline"
+          title={t('more.internet')}
+          subtitle={t('more.internetHint')}
+          onPress={() => router.push('/(app)/settings/internet')}
+        />
       </Card>
       <Text style={styles.label}>{t('settings.language')}</Text>
       <SegmentedControl

@@ -73,7 +73,8 @@
           "cameraPermission": "MileTax a besoin de l'appareil photo pour photographier vos reçus et votre odomètre."
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      "expo-mail-composer"
     ],
     "experiments": {
       "typedRoutes": true
