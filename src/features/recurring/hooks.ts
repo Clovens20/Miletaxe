@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/features/auth/AuthProvider';
+import type { ExpenseRecord } from '@/features/expenses/types';
 import { useExpenseCategories } from '@/features/tax-config/hooks';
 import { loadLocal, newId, updateLocal } from '@/lib/local/store';
 import { getSupabase, isLocalMode } from '@/lib/supabase/client';
@@ -158,7 +159,7 @@ export function useEnsureRecurringCharges() {
         const missing = missingInternetCharges(plans.data ?? [], expenses);
         if (!missing.length) return;
         const now = new Date().toISOString();
-        const rows = [];
+        const rows: ExpenseRecord[] = [];
         for (const draft of missing) {
           rows.push({
             id: await newId(),
