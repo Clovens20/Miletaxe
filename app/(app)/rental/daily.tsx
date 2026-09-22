@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, StyleSheet, Text, View } from 'react-native';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
@@ -24,9 +24,9 @@ import {
   weekDates,
   type RentalRateMode,
 } from '@/features/rental/engine';
-import { parseRentalAmount, useLogRentalDays, useRentalDays } from '@/features/rental/hooks';
+import { parseRentalAmount, useDeleteRentalDays, useLogRentalDays, useRentalDays } from '@/features/rental/hooks';
 import { rentalVehiclesOf, useVehicles } from '@/features/vehicles/hooks';
-import { addDays, formatMoney, startOfWeekIso, todayIso } from '@/lib/format';
+import { addDays, formatDate, formatMoney, startOfWeekIso, todayIso } from '@/lib/format';
 import type { CurrencyCode, SupportedLocale } from '@/types/domain';
 import { colors, space, type } from '@/theme';
 
@@ -38,6 +38,7 @@ export default function RentalDailyScreen() {
   const vehicles = useVehicles();
   const days = useRentalDays();
   const logDays = useLogRentalDays();
+  const deleteDays = useDeleteRentalDays();
   const locale = (i18n.language === 'en' ? 'en' : 'fr') as SupportedLocale;
   const currency = (profile?.default_currency ?? 'CAD') as CurrencyCode;
   const country = profile?.country_code;
@@ -58,7 +59,7 @@ export default function RentalDailyScreen() {
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [rateHydrated, setRateHydrated] = useState(false);
-  const [saved, setSaved] = useState<{ count: number; total: number } | null>(null);
+  const [saved, setSaved] = useState<{ count: number; total: number; removed?: number } | null>(null);
 
   const week = useMemo(() => weekDates(weekStart), [weekStart]);
   const inferred = useMemo(
@@ -70,6 +71,12 @@ export default function RentalDailyScreen() {
     () => new Set((days.data ?? []).filter((row) => week.includes(row.work_date)).map((row) => row.work_date)),
     [days.data, week],
   );
+  const removedDates = useMemo(
+    () => [...logged].filter((date) => !selectedDates.includes(date)),
+    [logged, selectedDates],
+  );
+  const todayInWeek = week.includes(today);
+  const canSkipToday = todayInWeek && (selectedDates.includes(today) || logged.has(today));
   const minWeek = startOfWeekIso(addDays(today, -84));
   const maxWeek = startOfWeekIso(addDays(today, 7));
 
@@ -109,24 +116,49 @@ export default function RentalDailyScreen() {
   };
 
   const onSave = async () => {
-    if (!selectedDates.length) {
+    if (!selectedDates.length && !removedDates.length) {
       setError('rental.selectDays');
       return;
     }
-    if (parsedAmount == null) {
+    if (selectedDates.length && parsedAmount == null) {
       setError('validation.positive');
       return;
     }
     setError(null);
-    const entries = buildRentalEntries(selectedDates, parsedAmount, rateMode);
+    const entries = selectedDates.length && parsedAmount != null
+      ? buildRentalEntries(selectedDates, parsedAmount, rateMode)
+      : [];
     await logDays.mutateAsync({
       entries,
+      removeDates: removedDates,
       notes: notes.trim() || null,
       nickname,
       rental_vendor: vendor.trim() || null,
-      daily_rental_rate: preview.perDay,
+      daily_rental_rate: preview.perDay || rental?.daily_rental_rate || undefined,
     });
-    setSaved({ count: entries.length, total: preview.total });
+    setSaved({
+      count: entries.length,
+      total: preview.total,
+      removed: removedDates.length,
+    });
+  };
+
+  const skipToday = () => {
+    const apply = async () => {
+      setSelectedOverride(selectedDates.filter((date) => date !== today));
+      if (logged.has(today)) {
+        await deleteDays.mutateAsync({ dates: [today], vehicleId: rental?.id });
+      }
+    };
+    const message = t('rental.skipTodayConfirm', { date: formatDate(today, locale, country) });
+    if (Platform.OS === 'web') {
+      if (globalThis.confirm?.(message)) void apply();
+      return;
+    }
+    Alert.alert(t('rental.skipToday'), message, [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('rental.skipToday'), onPress: () => void apply() },
+    ]);
   };
 
   return (
@@ -135,11 +167,16 @@ export default function RentalDailyScreen() {
         <Card style={styles.saved}>
           <Text style={styles.savedTitle}>{t('rental.saved')}</Text>
           <Text style={styles.savedBody}>
-            {t('rental.savedCount', {
-              count: saved.count,
-              amount: formatMoney(saved.total, currency, locale, country),
-            })}
+            {saved.count
+              ? t('rental.savedCount', {
+                  count: saved.count,
+                  amount: formatMoney(saved.total, currency, locale, country),
+                })
+              : t('rental.removedCount', { count: saved.removed ?? 0 })}
           </Text>
+          {saved.count && saved.removed ? (
+            <Text style={styles.savedBody}>{t('rental.removedCount', { count: saved.removed })}</Text>
+          ) : null}
           <Text style={styles.savedBody}>{t('rental.savedHint')}</Text>
           <Button label={t('rental.addFuel')} onPress={() => router.push('/(app)/expenses/scan' as Href)} />
           <Button
@@ -199,6 +236,14 @@ export default function RentalDailyScreen() {
               countryCode={country}
               onToggle={(date) => setSelectedOverride(toggleDate(selectedDates, date))}
             />
+            {canSkipToday ? (
+              <Button
+                label={t('rental.skipToday')}
+                variant="secondary"
+                loading={deleteDays.isPending}
+                onPress={skipToday}
+              />
+            ) : null}
           </View>
 
           <RentalRateEditor
@@ -226,11 +271,13 @@ export default function RentalDailyScreen() {
             label={
               selectedDates.length
                 ? t('rental.logDays', { count: selectedDates.length })
-                : t('rental.selectDays')
+                : removedDates.length
+                  ? t('rental.removeDays', { count: removedDates.length })
+                  : t('rental.selectDays')
             }
             loading={logDays.isPending}
-            disabled={!selectedDates.length}
-            onPress={onSave}
+            disabled={!selectedDates.length && !removedDates.length}
+            onPress={() => void onSave()}
           />
         </>
       )}

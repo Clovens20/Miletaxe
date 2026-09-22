@@ -128,17 +128,19 @@ export function WeekDayPicker({
         const active = selected.includes(date);
         const isToday = date === today;
         const already = logged.has(date);
+        const willRemove = already && !active;
         return (
           <Pressable
             key={date}
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
-            accessibilityLabel={`${formatWeekdayShort(date, locale, countryCode)} ${formatDayOfMonth(date)}${already ? `, ${t('rental.alreadyLogged')}` : ''}`}
+            accessibilityLabel={`${formatWeekdayShort(date, locale, countryCode)} ${formatDayOfMonth(date)}${already ? `, ${t('rental.alreadyLogged')}` : ''}${willRemove ? `, ${t('rental.willRemove')}` : ''}`}
             onPress={() => onToggle(date)}
             style={({ pressed }) => [
               styles.day,
               active && styles.dayOn,
-              isToday && !active && styles.dayToday,
+              willRemove && styles.dayRemove,
+              isToday && !active && !willRemove && styles.dayToday,
               pressed && styles.pressed,
             ]}
           >
@@ -375,6 +377,10 @@ const styles = StyleSheet.create({
   },
   dayToday: {
     borderColor: colors.accent,
+  },
+  dayRemove: {
+    borderColor: colors.danger,
+    backgroundColor: colors.dangerSoft,
   },
   dayWeek: {
     ...type.caption,

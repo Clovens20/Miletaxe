@@ -45,6 +45,9 @@ export function inferSelectedDates(
   preferredCount?: number,
 ): string[] {
   const rows = days ?? [];
+  const currentLogged = week.filter((date) => rows.some((row) => row.work_date === date));
+  if (currentLogged.length) return currentLogged;
+
   const lookbackStart = addDays(week[0] ?? today, -21);
   const recent = rows.filter((row) => row.work_date >= lookbackStart && row.work_date < (week[0] ?? today));
   if (recent.length >= 2) {
@@ -67,8 +70,6 @@ export function inferSelectedDates(
     if (mirrored.length) return mirrored;
   }
 
-  const currentLogged = week.filter((date) => rows.some((row) => row.work_date === date));
-  if (currentLogged.length) return currentLogged;
   if (preferredCount && preferredCount >= 1) return datesForDayCount(week, preferredCount, today);
   if (week.includes(today) && weekdayIndexMon0(today) >= 5) return [today];
   return week.slice(0, 5);

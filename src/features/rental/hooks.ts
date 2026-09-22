@@ -148,13 +148,15 @@ export function useLogRentalDays() {
   return useMutation({
     mutationFn: async (input: {
       entries: Array<{ work_date: string; rental_amount: number }>;
+      removeDates?: string[];
       notes?: string | null;
       nickname?: string;
       rental_vendor?: string | null;
       daily_rental_rate?: number | null;
     }) => {
       if (!user) throw new Error('unauthenticated');
-      if (!input.entries.length) return [];
+      const removeDates = [...new Set((input.removeDates ?? []).filter(Boolean))];
+      if (!input.entries.length && !removeDates.length) return [];
       const cached = client.getQueryData(['vehicles', user.id]) as Vehicle[] | undefined;
       let vehicle = rentalVehiclesOf(cached)[0];
       if (!vehicle) {
@@ -167,7 +169,7 @@ export function useLogRentalDays() {
         }
       }
       const rate = input.daily_rental_rate ?? input.entries[0]?.rental_amount ?? null;
-      if (!vehicle) {
+      if (!vehicle && input.entries.length) {
         vehicle = await createVehicle.mutateAsync({
           nickname: (input.nickname ?? '').trim() || 'Location',
           distance_unit: (profile?.default_distance_unit ?? 'km') as DistanceUnit,
@@ -177,9 +179,10 @@ export function useLogRentalDays() {
           rental_vendor: input.rental_vendor ?? null,
         });
       }
-      if (!vehicle) throw new Error('missing_vehicle');
+      if (!vehicle && input.entries.length) throw new Error('missing_vehicle');
       const rentalVehicle = vehicle;
       if (
+        rentalVehicle &&
         rate != null &&
         (rate !== rentalVehicle.daily_rental_rate ||
           (input.rental_vendor != null && input.rental_vendor !== rentalVehicle.rental_vendor))
@@ -208,23 +211,32 @@ export function useLogRentalDays() {
       }
 
       const now = new Date().toISOString();
-      const payloads = input.entries.map((entry) => ({
-        user_id: user.id,
-        vehicle_id: rentalVehicle.id,
-        work_date: entry.work_date,
-        rental_amount: entry.rental_amount,
-        notes: input.notes ?? null,
-      }));
+      const payloads = rentalVehicle
+        ? input.entries.map((entry) => ({
+            user_id: user.id,
+            vehicle_id: rentalVehicle.id,
+            work_date: entry.work_date,
+            rental_amount: entry.rental_amount,
+            notes: input.notes ?? null,
+          }))
+        : [];
+
+      const dropDates = (rows: Record<string, unknown>[]) =>
+        rows.filter((row) => {
+          if (!removeDates.includes(String(row.work_date))) return true;
+          if (rentalVehicle && String(row.vehicle_id) !== rentalVehicle.id) return true;
+          return false;
+        });
 
       if (isLocalMode()) {
         const ids = await Promise.all(payloads.map(() => newId()));
         const saved: VehicleRentalDay[] = [];
         await updateLocal((state) => {
-          const rentalDays = [...state.rental_days];
+          let rentalDays = dropDates([...state.rental_days]);
           payloads.forEach((payload, index) => {
             const existingIndex = rentalDays.findIndex(
               (row) =>
-                (row as { vehicle_id: string }).vehicle_id === rentalVehicle.id &&
+                (row as { vehicle_id: string }).vehicle_id === payload.vehicle_id &&
                 (row as { work_date: string }).work_date === payload.work_date,
             );
             if (existingIndex >= 0) {
@@ -243,16 +255,64 @@ export function useLogRentalDays() {
         return saved;
       }
 
-      const { data, error } = await getSupabase()
-        .from('vehicle_rental_days')
-        .upsert(payloads, { onConflict: 'vehicle_id,work_date' })
-        .select('*');
-      if (error) throw error;
-      return (data ?? []).map((row) => asDay(row as Record<string, unknown>));
+      if (payloads.length) {
+        const { error } = await getSupabase()
+          .from('vehicle_rental_days')
+          .upsert(payloads, { onConflict: 'vehicle_id,work_date' });
+        if (error) throw error;
+      }
+      if (removeDates.length) {
+        let query = getSupabase()
+          .from('vehicle_rental_days')
+          .delete()
+          .eq('user_id', user.id)
+          .in('work_date', removeDates);
+        if (rentalVehicle) query = query.eq('vehicle_id', rentalVehicle.id);
+        const { error } = await query;
+        if (error) throw error;
+      }
+      return [];
     },
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ['rental-days'] });
       client.invalidateQueries({ queryKey: ['vehicles'] });
+      client.invalidateQueries({ queryKey: ['integrity'] });
+    },
+  });
+}
+
+export function useDeleteRentalDays() {
+  const { user } = useAuth();
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { dates: string[]; vehicleId?: string }) => {
+      if (!user) throw new Error('unauthenticated');
+      const dates = [...new Set(input.dates.filter(Boolean))];
+      if (!dates.length) return;
+      if (isLocalMode()) {
+        await updateLocal((state) => ({
+          ...state,
+          rental_days: state.rental_days.filter((row) => {
+            const date = (row as { work_date: string }).work_date;
+            const vehicleId = (row as { vehicle_id: string }).vehicle_id;
+            if (!dates.includes(date)) return true;
+            if (input.vehicleId && vehicleId !== input.vehicleId) return true;
+            return false;
+          }),
+        }));
+        return;
+      }
+      let query = getSupabase()
+        .from('vehicle_rental_days')
+        .delete()
+        .eq('user_id', user.id)
+        .in('work_date', dates);
+      if (input.vehicleId) query = query.eq('vehicle_id', input.vehicleId);
+      const { error } = await query;
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ['rental-days'] });
       client.invalidateQueries({ queryKey: ['integrity'] });
     },
   });
