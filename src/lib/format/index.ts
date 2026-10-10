@@ -102,8 +102,14 @@ export function formatDateTime(
   }
 }
 
+export function isoDateOnly(value: string | null | undefined): string {
+  const raw = String(value ?? '').trim();
+  const match = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+  return match?.[1] ?? '';
+}
+
 export function addDays(isoDate: string, days: number): string {
-  const date = new Date(`${isoDate}T00:00:00`);
+  const date = new Date(`${isoDateOnly(isoDate)}T00:00:00`);
   date.setDate(date.getDate() + days);
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -112,10 +118,11 @@ export function addDays(isoDate: string, days: number): string {
 }
 
 export function startOfWeekIso(isoDate: string): string {
-  const date = new Date(`${isoDate}T00:00:00`);
+  const dayIso = isoDateOnly(isoDate);
+  const date = new Date(`${dayIso}T00:00:00`);
   const day = date.getDay();
   const diff = day === 0 ? -6 : 1 - day;
-  return addDays(isoDate, diff);
+  return addDays(dayIso, diff);
 }
 
 export function startOfMonthIso(isoDate: string): string {

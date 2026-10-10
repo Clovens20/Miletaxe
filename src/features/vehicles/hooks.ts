@@ -21,7 +21,7 @@ export function isRentalVehicle(vehicle: { tracking_mode?: string | null }) {
 }
 
 export function rentalVehiclesOf(list: Vehicle[] | undefined) {
-  return (list ?? []).filter(isRentalVehicle);
+  return (list ?? []).filter((row) => isRentalVehicle(row) && row.is_active !== false);
 }
 
 export function odometerVehiclesOf(list: Vehicle[] | undefined) {
@@ -71,6 +71,7 @@ export function useVehicles() {
         .from('vehicles')
         .select('*')
         .eq('user_id', user!.id)
+        .eq('is_active', true)
         .order('created_at', { ascending: false });
       if (error) throw error;
       return (data as Vehicle[]).map((row) => withVehicleDefaults(row));
@@ -206,6 +207,40 @@ export function useUpdateVehicle() {
       if (error) throw error;
     },
     onSuccess: () => client.invalidateQueries({ queryKey: ['vehicles'] }),
+  });
+}
+
+export function useDeleteVehicle() {
+  const { user } = useAuth();
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (!user) throw new Error('unauthenticated');
+      if (isLocalMode()) {
+        await updateLocal((state) => ({
+          ...state,
+          vehicles: state.vehicles.map((row) =>
+            (row as { id: string }).id === id
+              ? { ...row, is_active: false, updated_at: new Date().toISOString() }
+              : row,
+          ),
+        }));
+        return;
+      }
+      const { error } = await getSupabase()
+        .from('vehicles')
+        .update({ is_active: false })
+        .eq('id', id)
+        .eq('user_id', user.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ['vehicles'] });
+      client.invalidateQueries({ queryKey: ['rental-days'] });
+      client.invalidateQueries({ queryKey: ['odometer'] });
+      client.invalidateQueries({ queryKey: ['distance-summary'] });
+      client.invalidateQueries({ queryKey: ['integrity'] });
+    },
   });
 }
 

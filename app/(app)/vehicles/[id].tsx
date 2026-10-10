@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Alert, Platform, StyleSheet, Text } from 'react-native';
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 
@@ -13,10 +14,9 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { RentalRateEditor, SetupDayCountPicker } from '@/features/rental/RentalSchedule';
 import { convertRateAmount, resolveStoredDailyRate, type RentalRateMode } from '@/features/rental/engine';
 import { parseRentalAmount } from '@/features/rental/hooks';
-import { isRentalVehicle, useUpdateVehicle, useVehicle } from '@/features/vehicles/hooks';
+import { isRentalVehicle, useDeleteVehicle, useUpdateVehicle, useVehicle } from '@/features/vehicles/hooks';
 import { formatDistance } from '@/lib/format';
 import type { CurrencyCode, DistanceUnit, SupportedLocale } from '@/types/domain';
-import { StyleSheet, Text } from 'react-native';
 import { colors, type } from '@/theme';
 
 export default function VehicleDetailScreen() {
@@ -26,6 +26,7 @@ export default function VehicleDetailScreen() {
   const { profile } = useAuth();
   const vehicle = useVehicle(id);
   const update = useUpdateVehicle();
+  const removeVehicle = useDeleteVehicle();
   const locale = (i18n.language === 'en' ? 'en' : 'fr') as SupportedLocale;
   const currency = (profile?.default_currency ?? 'CAD') as CurrencyCode;
   const [rateMode, setRateMode] = useState<RentalRateMode>('daily');
@@ -185,6 +186,30 @@ export default function VehicleDetailScreen() {
         </>
       )}
       <Button label={t('common.save')} loading={formState.isSubmitting || update.isPending} onPress={onSubmit} />
+      {rental && id ? (
+        <Button
+          label={t('rental.deleteRental')}
+          variant="danger"
+          loading={removeVehicle.isPending}
+          onPress={() => {
+            const message = t('rental.deleteRentalConfirm', { name: vehicle.data?.nickname ?? '' });
+            const go = () => {
+              void removeVehicle
+                .mutateAsync(id)
+                .then(() => router.replace('/(app)/vehicles' as Href))
+                .catch(() => Alert.alert(t('common.error')));
+            };
+            if (Platform.OS === 'web') {
+              if (globalThis.confirm?.(message)) go();
+              return;
+            }
+            Alert.alert(t('rental.deleteRental'), message, [
+              { text: t('common.cancel'), style: 'cancel' },
+              { text: t('rental.deleteRental'), style: 'destructive', onPress: go },
+            ]);
+          }}
+        />
+      ) : null}
       <Button label={t('common.back')} variant="ghost" onPress={() => router.back()} />
     </Screen>
   );

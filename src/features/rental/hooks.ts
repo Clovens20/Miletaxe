@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/features/auth/AuthProvider';
 import { rentalVehiclesOf, useCreateVehicle, type Vehicle } from '@/features/vehicles/hooks';
-import { parseDecimal, startOfMonthIso, todayIso } from '@/lib/format';
+import { isoDateOnly, parseDecimal, startOfMonthIso, todayIso } from '@/lib/format';
 import { loadLocal, newId, updateLocal } from '@/lib/local/store';
 import { getSupabase, isLocalMode } from '@/lib/supabase/client';
 import type { DistanceUnit } from '@/types/domain';
@@ -14,7 +14,7 @@ function asDay(row: Record<string, unknown>): VehicleRentalDay {
     id: String(row.id),
     user_id: String(row.user_id),
     vehicle_id: String(row.vehicle_id),
-    work_date: String(row.work_date),
+    work_date: isoDateOnly(String(row.work_date)),
     rental_amount: Number(row.rental_amount),
     notes: typeof row.notes === 'string' ? row.notes : null,
     created_at: String(row.created_at ?? new Date().toISOString()),
@@ -91,7 +91,8 @@ export function useLogRentalDay() {
       if (isLocalMode()) {
         const local = await loadLocal();
         const existing = (local.rental_days as Record<string, unknown>[]).find(
-          (row) => row.vehicle_id === vehicle.id && row.work_date === input.work_date,
+          (row) =>
+            row.vehicle_id === vehicle.id && isoDateOnly(String(row.work_date)) === input.work_date,
         );
         if (existing) {
           await updateLocal((state) => ({
@@ -128,12 +129,15 @@ export function useLogRentalDay() {
 export function rentalTotals(days: VehicleRentalDay[] | undefined, today = todayIso()) {
   const monthStart = startOfMonthIso(today);
   const rows = days ?? [];
-  const todayRow = rows.find((row) => row.work_date === today);
+  const todayRow = rows.find((row) => isoDateOnly(row.work_date) === today);
   return {
     todayAmount: todayRow?.rental_amount ?? 0,
     todayLogged: Boolean(todayRow),
     monthAmount: rows
-      .filter((row) => row.work_date >= monthStart && row.work_date <= today)
+      .filter((row) => {
+        const date = isoDateOnly(row.work_date);
+        return date >= monthStart && date <= today;
+      })
       .reduce((sum, row) => sum + Number(row.rental_amount), 0),
     yearAmount: rows.reduce((sum, row) => sum + Number(row.rental_amount), 0),
     count: rows.length,
@@ -223,7 +227,7 @@ export function useLogRentalDays() {
 
       const dropDates = (rows: Record<string, unknown>[]) =>
         rows.filter((row) => {
-          if (!removeDates.includes(String(row.work_date))) return true;
+          if (!removeDates.includes(isoDateOnly(String(row.work_date)))) return true;
           if (rentalVehicle && String(row.vehicle_id) !== rentalVehicle.id) return true;
           return false;
         });
@@ -237,7 +241,7 @@ export function useLogRentalDays() {
             const existingIndex = rentalDays.findIndex(
               (row) =>
                 (row as { vehicle_id: string }).vehicle_id === payload.vehicle_id &&
-                (row as { work_date: string }).work_date === payload.work_date,
+                isoDateOnly((row as { work_date: string }).work_date) === payload.work_date,
             );
             if (existingIndex >= 0) {
               const current = rentalDays[existingIndex] as Record<string, unknown>;
@@ -293,7 +297,7 @@ export function useDeleteRentalDays() {
         await updateLocal((state) => ({
           ...state,
           rental_days: state.rental_days.filter((row) => {
-            const date = (row as { work_date: string }).work_date;
+            const date = isoDateOnly((row as { work_date: string }).work_date);
             const vehicleId = (row as { vehicle_id: string }).vehicle_id;
             if (!dates.includes(date)) return true;
             if (input.vehicleId && vehicleId !== input.vehicleId) return true;

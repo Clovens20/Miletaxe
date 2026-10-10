@@ -25,8 +25,8 @@ import {
   type RentalRateMode,
 } from '@/features/rental/engine';
 import { parseRentalAmount, useDeleteRentalDays, useLogRentalDays, useRentalDays } from '@/features/rental/hooks';
-import { rentalVehiclesOf, useVehicles } from '@/features/vehicles/hooks';
-import { addDays, formatDate, formatMoney, startOfWeekIso, todayIso } from '@/lib/format';
+import { rentalVehiclesOf, useDeleteVehicle, useVehicles } from '@/features/vehicles/hooks';
+import { addDays, formatDate, formatMoney, isoDateOnly, startOfWeekIso, todayIso } from '@/lib/format';
 import type { CurrencyCode, SupportedLocale } from '@/types/domain';
 import { colors, space, type } from '@/theme';
 
@@ -39,6 +39,7 @@ export default function RentalDailyScreen() {
   const days = useRentalDays();
   const logDays = useLogRentalDays();
   const deleteDays = useDeleteRentalDays();
+  const deleteRental = useDeleteVehicle();
   const locale = (i18n.language === 'en' ? 'en' : 'fr') as SupportedLocale;
   const currency = (profile?.default_currency ?? 'CAD') as CurrencyCode;
   const country = profile?.country_code;
@@ -68,7 +69,12 @@ export default function RentalDailyScreen() {
   );
   const selectedDates = selectedOverride ?? inferred;
   const logged = useMemo(
-    () => new Set((days.data ?? []).filter((row) => week.includes(row.work_date)).map((row) => row.work_date)),
+    () =>
+      new Set(
+        (days.data ?? [])
+          .map((row) => isoDateOnly(row.work_date))
+          .filter((date) => week.includes(date)),
+      ),
     [days.data, week],
   );
   const removedDates = useMemo(
@@ -143,22 +149,56 @@ export default function RentalDailyScreen() {
     });
   };
 
-  const skipToday = () => {
-    const apply = async () => {
-      setSelectedOverride(selectedDates.filter((date) => date !== today));
-      if (logged.has(today)) {
-        await deleteDays.mutateAsync({ dates: [today], vehicleId: rental?.id });
-      }
-    };
-    const message = t('rental.skipTodayConfirm', { date: formatDate(today, locale, country) });
+  const confirmAction = (title: string, message: string, confirmLabel: string, onConfirm: () => void) => {
     if (Platform.OS === 'web') {
-      if (globalThis.confirm?.(message)) void apply();
+      if (globalThis.confirm?.(message)) onConfirm();
       return;
     }
-    Alert.alert(t('rental.skipToday'), message, [
+    Alert.alert(title, message, [
       { text: t('common.cancel'), style: 'cancel' },
-      { text: t('rental.skipToday'), onPress: () => void apply() },
+      { text: confirmLabel, style: 'destructive', onPress: onConfirm },
     ]);
+  };
+
+  const applySelection = (dates: string[]) => {
+    const dropped = [...logged].filter((date) => !dates.includes(date));
+    const go = async () => {
+      setSelectedOverride(dates);
+      if (!dropped.length) return;
+      try {
+        await deleteDays.mutateAsync({ dates: dropped, vehicleId: rental?.id });
+      } catch {
+        setError('common.error');
+      }
+    };
+    if (!dropped.length) {
+      setSelectedOverride(dates);
+      return;
+    }
+    const message =
+      dropped.length === 1
+        ? t('rental.skipTodayConfirm', { date: formatDate(dropped[0]!, locale, country) })
+        : t('rental.removeLoggedConfirm', { count: dropped.length });
+    confirmAction(t('rental.removeDays', { count: dropped.length }), message, t('common.delete'), () => void go());
+  };
+
+  const skipToday = () => applySelection(selectedDates.filter((date) => date !== today));
+
+  const skipFocused = () => applySelection(selectedDates.filter((date) => date !== focusedDate));
+
+  const onDeleteRental = () => {
+    if (!rental) return;
+    confirmAction(
+      t('rental.deleteRental'),
+      t('rental.deleteRentalConfirm', { name: rental.nickname }),
+      t('rental.deleteRental'),
+      () => {
+        void deleteRental
+          .mutateAsync(rental.id)
+          .then(() => router.replace('/(app)/(tabs)' as Href))
+          .catch(() => setError('common.error'));
+      },
+    );
   };
 
   return (
@@ -225,7 +265,7 @@ export default function RentalDailyScreen() {
               week={week}
               today={today}
               selected={selectedDates}
-              onSelect={setSelectedOverride}
+              onSelect={applySelection}
             />
             <WeekDayPicker
               week={week}
@@ -234,7 +274,7 @@ export default function RentalDailyScreen() {
               logged={logged}
               locale={locale}
               countryCode={country}
-              onToggle={(date) => setSelectedOverride(toggleDate(selectedDates, date))}
+              onToggle={(date) => applySelection(toggleDate(selectedDates, date))}
             />
             {canSkipToday ? (
               <Button
@@ -242,6 +282,14 @@ export default function RentalDailyScreen() {
                 variant="secondary"
                 loading={deleteDays.isPending}
                 onPress={skipToday}
+              />
+            ) : null}
+            {focusedDate !== today && week.includes(focusedDate) && (selectedDates.includes(focusedDate) || logged.has(focusedDate)) ? (
+              <Button
+                label={t('rental.removeDay', { date: formatDate(focusedDate, locale, country) })}
+                variant="secondary"
+                loading={deleteDays.isPending}
+                onPress={skipFocused}
               />
             ) : null}
           </View>
@@ -267,6 +315,7 @@ export default function RentalDailyScreen() {
             onChangeText={setNotes}
           />
           {error === 'rental.selectDays' ? <Text style={styles.error}>{t('rental.selectDays')}</Text> : null}
+          {error === 'common.error' ? <Text style={styles.error}>{t('common.error')}</Text> : null}
           <Button
             label={
               selectedDates.length
@@ -279,6 +328,14 @@ export default function RentalDailyScreen() {
             disabled={!selectedDates.length && !removedDates.length}
             onPress={() => void onSave()}
           />
+          {rental ? (
+            <Button
+              label={t('rental.deleteRental')}
+              variant="danger"
+              loading={deleteRental.isPending}
+              onPress={onDeleteRental}
+            />
+          ) : null}
         </>
       )}
       <Button label={t('common.cancel')} variant="ghost" onPress={() => router.back()} />

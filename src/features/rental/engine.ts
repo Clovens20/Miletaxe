@@ -1,4 +1,4 @@
-import { addDays, startOfWeekIso } from '@/lib/format';
+import { addDays, isoDateOnly, startOfWeekIso } from '@/lib/format';
 
 import type { VehicleRentalDay } from './types';
 
@@ -12,7 +12,7 @@ export function weekDates(anchor: string): string[] {
 }
 
 export function weekdayIndexMon0(iso: string): number {
-  const day = new Date(`${iso}T00:00:00`).getDay();
+  const day = new Date(`${isoDateOnly(iso)}T00:00:00`).getDay();
   return day === 0 ? 6 : day - 1;
 }
 
@@ -45,7 +45,9 @@ export function inferSelectedDates(
   preferredCount?: number,
 ): string[] {
   const rows = days ?? [];
-  const currentLogged = week.filter((date) => rows.some((row) => row.work_date === date));
+  const currentLogged = week.filter((date) =>
+    rows.some((row) => isoDateOnly(row.work_date) === date),
+  );
   if (currentLogged.length) return currentLogged;
 
   const lookbackStart = addDays(week[0] ?? today, -21);
@@ -53,7 +55,7 @@ export function inferSelectedDates(
   if (recent.length >= 2) {
     const frequency = [0, 0, 0, 0, 0, 0, 0];
     for (const row of recent) {
-      const index = weekdayIndexMon0(row.work_date);
+      const index = weekdayIndexMon0(isoDateOnly(row.work_date));
       frequency[index] = (frequency[index] ?? 0) + 1;
     }
     const peak = Math.max(...frequency);
@@ -63,9 +65,9 @@ export function inferSelectedDates(
   }
 
   const previous = weekDates(shiftWeek(week[0] ?? today, -1));
-  const previousLogged = rows.filter((row) => previous.includes(row.work_date));
+  const previousLogged = rows.filter((row) => previous.includes(isoDateOnly(row.work_date)));
   if (previousLogged.length) {
-    const indexes = new Set(previousLogged.map((row) => weekdayIndexMon0(row.work_date)));
+    const indexes = new Set(previousLogged.map((row) => weekdayIndexMon0(isoDateOnly(row.work_date))));
     const mirrored = week.filter((date) => indexes.has(weekdayIndexMon0(date)));
     if (mirrored.length) return mirrored;
   }
