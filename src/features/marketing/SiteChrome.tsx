@@ -141,6 +141,17 @@ export function SiteFooter() {
           <Text style={styles.footerLink}>{t('legal.deleteAccountTitle')}</Text>
         </Pressable>
         <Text style={styles.dot}>·</Text>
+        <Pressable
+          onPress={() => {
+            router.push('/' as Href);
+            if (Platform.OS === 'web') {
+              setTimeout(() => jump('about'), 200);
+            }
+          }}
+        >
+          <Text style={styles.footerLink}>{t('landing.aboutUs')}</Text>
+        </Pressable>
+        <Text style={styles.dot}>·</Text>
         <Text style={styles.footerLink}>{PRODUCT.supportEmail}</Text>
       </View>
       <Text style={styles.footerMeta}>{PRODUCT.siteOrigin.replace('https://', '')}</Text>

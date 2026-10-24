@@ -104,16 +104,30 @@ function LandingSectionView({
 
   const trust = section.variant === 'trust';
   const steps = section.variant === 'steps';
+  const prose = section.variant === 'prose';
 
   return (
     <View nativeID={section.navId || section.id} style={[styles.section, trust && styles.trustBand]}>
       <FormattedText value={section.title} style={styles.sectionTitle} />
-      {section.body ? <FormattedText value={section.body} style={styles.sectionLead} /> : null}
-      <View style={[styles.grid, wide && (trust ? styles.grid2 : styles.grid3)]}>
+      {section.body ? (
+        <FormattedText value={section.body} style={prose ? styles.proseLead : styles.sectionLead} />
+      ) : null}
+      <View
+        style={[
+          styles.grid,
+          prose && styles.proseStack,
+          !prose && wide && (trust ? styles.grid2 : styles.grid3),
+        ]}
+      >
         {section.cards.map((card, index) =>
           steps ? (
             <View key={card.id} style={styles.step}>
               <Text style={styles.stepNum}>{String(index + 1).padStart(2, '0')}</Text>
+              <FormattedText value={card.title} style={styles.cardTitle} />
+              <FormattedText value={card.body} style={styles.cardBody} />
+            </View>
+          ) : prose ? (
+            <View key={card.id} style={styles.proseBlock}>
               <FormattedText value={card.title} style={styles.cardTitle} />
               <FormattedText value={card.body} style={styles.cardBody} />
             </View>
@@ -212,6 +226,18 @@ const styles = StyleSheet.create({
     ...type.body,
     color: colors.textSecondary,
     maxWidth: 640,
+  },
+  proseLead: {
+    ...type.body,
+    color: colors.textSecondary,
+    maxWidth: 720,
+  },
+  proseStack: {
+    gap: space.xl,
+    maxWidth: 720,
+  },
+  proseBlock: {
+    gap: space.sm,
   },
   grid: {
     gap: space.md,

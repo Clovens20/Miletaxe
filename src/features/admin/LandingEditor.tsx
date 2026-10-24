@@ -29,7 +29,10 @@ function moveItem<T>(list: T[], index: number, direction: -1 | 1) {
   return copy;
 }
 
-function emptySection(kind: 'cards' | 'screens' | 'cta', variant?: 'grid' | 'steps' | 'trust'): LandingSection {
+function emptySection(
+  kind: 'cards' | 'screens' | 'cta',
+  variant?: 'grid' | 'steps' | 'trust' | 'prose',
+): LandingSection {
   if (kind === 'screens') return { id: newLandingId(), kind: 'screens', title: '', visible: true };
   if (kind === 'cta') return { id: newLandingId(), kind: 'cta', title: '', body: '', playSoon: '', visible: true };
   return {
@@ -184,6 +187,7 @@ export function LandingEditor() {
           <Button label={t('admin.landingAddGrid')} variant="secondary" onPress={() => update({ sections: [...draft.sections, emptySection('cards', 'grid')] })} />
           <Button label={t('admin.landingAddSteps')} variant="secondary" onPress={() => update({ sections: [...draft.sections, emptySection('cards', 'steps')] })} />
           <Button label={t('admin.landingAddTrust')} variant="secondary" onPress={() => update({ sections: [...draft.sections, emptySection('cards', 'trust')] })} />
+          <Button label={t('admin.landingAddProse')} variant="secondary" onPress={() => update({ sections: [...draft.sections, emptySection('cards', 'prose')] })} />
           <Button label={t('admin.landingAddScreens')} variant="secondary" onPress={() => update({ sections: [...draft.sections, emptySection('screens')] })} />
           <Button label={t('admin.landingAddCta')} variant="secondary" onPress={() => update({ sections: [...draft.sections, emptySection('cta')] })} />
         </View>

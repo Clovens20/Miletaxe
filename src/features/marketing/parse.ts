@@ -55,7 +55,10 @@ function section(value: unknown, fallback: LandingSection): LandingSection {
     };
   }
   const fb = fallback.kind === 'cards' ? fallback : null;
-  const variant = row.variant === 'steps' || row.variant === 'trust' || row.variant === 'grid' ? row.variant : (fb?.variant ?? 'grid');
+  const variant =
+    row.variant === 'steps' || row.variant === 'trust' || row.variant === 'grid' || row.variant === 'prose'
+      ? row.variant
+      : (fb?.variant ?? 'grid');
   return {
     id: text(row.id, fallback.id || newLandingId()),
     kind: 'cards',
@@ -97,7 +100,50 @@ export function parseLandingContent(raw: unknown, locale: LandingLocale): Landin
       terms: text(footer.terms, fallback.footer.terms),
     },
     sections: rawSections
-      ? rawSections.map((item, index) => section(item, fallback.sections[index] ?? { id: newLandingId(), kind: 'cards', variant: 'grid', title: '', body: '', visible: true, cards: [] }))
+      ? mergeMissingSections(
+          rawSections.map((item, index) =>
+            section(
+              item,
+              fallback.sections[index] ?? {
+                id: newLandingId(),
+                kind: 'cards',
+                variant: 'grid',
+                title: '',
+                body: '',
+                visible: true,
+                cards: [],
+              },
+            ),
+          ),
+          fallback.sections,
+        )
       : fallback.sections,
   };
+}
+
+/** Ajoute les sections par défaut absentes du CMS (ex. À propos de nous). */
+function mergeMissingSections(parsed: LandingSection[], fallback: LandingSection[]): LandingSection[] {
+  const have = new Set(parsed.map((item) => item.id));
+  const missing = fallback.filter((item) => !have.has(item.id));
+  let next = parsed;
+  if (missing.length) {
+    const ctaIndex = parsed.findIndex((item) => item.kind === 'cta');
+    next =
+      ctaIndex >= 0
+        ? [...parsed.slice(0, ctaIndex), ...missing, ...parsed.slice(ctaIndex)]
+        : [...parsed, ...missing];
+  }
+  return next.map((item) => {
+    if (item.id !== 'about' || item.kind !== 'cards' || !isStubAbout(item)) return item;
+    const fresh = fallback.find((row) => row.id === 'about');
+    return fresh?.kind === 'cards' ? fresh : item;
+  });
+}
+
+/** Ancien bloc « À propos » court — remplacé par le récit complet tant qu’il n’a pas été réécrit. */
+function isStubAbout(section: Extract<LandingSection, { kind: 'cards' }>) {
+  if (section.cards.length > 3) return false;
+  return /application canadienne pour les travailleurs autonomes|Canadian app for self-employed workers/.test(
+    section.body,
+  );
 }

@@ -12,6 +12,7 @@ import { Card } from '@/components/ui/Card';
 import { PRODUCT } from '@/lib/constants';
 import { colors, type } from '@/theme';
 
+/** Page produit dans l’app (version + légal). « À propos de nous » est sur la landing web. */
 export default function AboutScreen() {
   const { t } = useTranslation();
   const router = useRouter();

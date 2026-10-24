@@ -936,6 +936,7 @@
     "landingAddGrid": "Cards",
     "landingAddSteps": "Numbered steps",
     "landingAddTrust": "Trust block",
+    "landingAddProse": "Story (About us)",
     "landingAddScreens": "Screenshots",
     "landingAddCta": "Final call",
     "landingRemoveSectionConfirm": "Remove this block from the landing?",
@@ -964,6 +965,7 @@
       "grid": "cards",
       "steps": "steps",
       "trust": "trust",
+      "prose": "story",
       "screens": "screenshots",
       "cta": "call"
     }
@@ -1046,6 +1048,7 @@
     "navFeatures": "Features",
     "navHow": "How it works",
     "navTrust": "Trust",
+    "aboutUs": "About us",
     "login": "Sign in",
     "register": "Create account",
     "openApp": "Open the app",

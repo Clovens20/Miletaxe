@@ -7,7 +7,7 @@ export type LandingCard = {
 export type LandingCardsSection = {
   id: string;
   kind: 'cards';
-  variant: 'grid' | 'steps' | 'trust';
+  variant: 'grid' | 'steps' | 'trust' | 'prose';
   title: string;
   body: string;
   visible: boolean;

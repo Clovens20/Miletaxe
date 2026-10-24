@@ -936,6 +936,7 @@
     "landingAddGrid": "Cartes",
     "landingAddSteps": "Étapes numérotées",
     "landingAddTrust": "Bloc confiance",
+    "landingAddProse": "Récit (À propos)",
     "landingAddScreens": "Captures d’écran",
     "landingAddCta": "Appel final",
     "landingRemoveSectionConfirm": "Supprimer ce bloc de la landing ?",
@@ -964,6 +965,7 @@
       "grid": "cartes",
       "steps": "étapes",
       "trust": "confiance",
+      "prose": "récit",
       "screens": "captures",
       "cta": "appel"
     }
@@ -1046,6 +1048,7 @@
     "navFeatures": "Fonctionnalités",
     "navHow": "Comment ça marche",
     "navTrust": "Confiance",
+    "aboutUs": "À propos de nous",
     "login": "Connexion",
     "register": "Créer un compte",
     "openApp": "Ouvrir l’app",

@@ -93,6 +93,61 @@ const fr: LandingContent = {
       ],
     },
     {
+      id: 'about',
+      kind: 'cards',
+      variant: 'prose',
+      title: 'À propos de nous',
+      body:
+        'Nous sommes des livreurs et des chauffeurs Uber. Nous avons créé l’app qu’il nous manquait.\n\nChaque année, au moment de faire les impôts, c’était la même histoire. Les kilomètres à reconstituer, les reçus d’essence et de réparations introuvables, les revenus éparpillés. Un comptable ne peut pas inventer des chiffres, et nous perdions du temps, du sommeil, et parfois des montants que nous aurions pu justifier.\n\nAu fil des ans, nous avons compris que le problème n’était pas le manque de rigueur. Il manquait un outil simple, pensé pour ceux qui travaillent au volant. Alors nous l’avons construit.\n\nMileTax est née de notre propre expérience, pour les livreurs et les chauffeurs Uber, Lyft et taxi du Canada et des États-Unis.',
+      visible: true,
+      navId: 'about',
+      navLabel: 'À propos de nous',
+      cards: [
+        {
+          id: 'about-problem',
+          title: 'Le problème, nous le connaissons par cœur',
+          body:
+            'Quand on gagne sa vie sur la route, l’année ressemble souvent à ça :\n\n• Des kilomètres notés sur un bout de papier, ou pas notés du tout\n• Des reçus d’essence, de service mécanique, de lavage, de stationnement et de pièces, éparpillés entre la boîte à gants, le sac et les poches\n• Des revenus répartis entre plusieurs plateformes\n• Et au moment de la déclaration, la course pour tout reconstituer de mémoire\n\nSans relevés datés et sans reçus lisibles, votre comptable ne peut pas défendre vos chiffres. Il travaille avec ce que vous lui donnez, et il ne peut pas deviner le reste.',
+        },
+        {
+          id: 'about-solution',
+          title: 'Notre solution : un dossier qui se construit au fil des jours',
+          body:
+            'Photographiez votre odomètre — Cadrez le compteur, confirmez le relevé. Vos distances se construisent à partir de vos propres chiffres, datés, comme un vrai registre.\n\nPhotographiez tous vos reçus — Essence, service mécanique, changement d’huile, pneus, réparations, lavage, stationnement : prenez-les en photo avant qu’ils disparaissent. La lecture automatique propose les champs (montant, date, catégorie), et rien n’est enregistré tant que vous n’avez pas validé.\n\nSuivez vos revenus et vos dépenses — Tout au même endroit, sans jongler entre plusieurs applis ni plusieurs tableurs.\n\nRemettez un dossier prêt pour votre comptable — Un PDF préparatoire regroupe vos relevés, vos reçus et vos revenus. Vous le transmettez quand vous le décidez. Aucun envoi automatique, et vous gardez toujours vos originaux.',
+        },
+        {
+          id: 'about-who',
+          title: 'Pour qui est MileTax ?',
+          body:
+            '• Chauffeurs Uber\n• Chauffeurs Lyft\n• Chauffeurs de taxi, propriétaires ou locataires de leur véhicule\n• Livreurs de repas, de colis et d’épicerie\n\nSi vous conduisez pour gagner votre vie et que votre comptable vous réclame vos papiers à chaque déclaration, MileTax est faite pour vous.',
+        },
+        {
+          id: 'about-steps',
+          title: 'Trois gestes, toute l’année',
+          body:
+            '1. Créez votre compte : courriel, région, métier.\n2. Capturez au fil des jours : l’odomètre après une tournée, le reçu avant qu’il disparaisse, le revenu quand il arrive.\n3. Remettez le paquet : quand votre comptable le demande, votre dossier est déjà là.',
+        },
+        {
+          id: 'about-not',
+          title: 'Ce que nous ne faisons pas, et pourquoi c’est volontaire',
+          body:
+            'MileTax n’est pas un logiciel d’impôt. Pas de déclaration fiscale, pas de calcul d’impôt ni de taxes, pas de formulaires préremplis, pas de conseil fiscal. Les totaux que vous voyez sont la somme de ce que vous avez saisi, rien de plus.\n\nLes règles changent d’un pays à l’autre, d’une province ou d’un État à l’autre, et d’une situation à l’autre. Votre comptable est le seul à pouvoir vous conseiller correctement. Notre rôle est de lui faciliter la tâche, pas de le remplacer.',
+        },
+        {
+          id: 'about-control',
+          title: 'Vous gardez le contrôle',
+          body:
+            '• Vous validez tout : montant, date, catégorie. Les suggestions restent des propositions.\n• Vos données vous appartiennent : chaque dossier est isolé, vous pouvez exporter une copie et supprimer votre compte quand vous le voulez.\n• Aucun envoi automatique à qui que ce soit.\n• Une vraie aide humaine : si quelque chose bloque, un agent de support vous répond.',
+        },
+        {
+          id: 'about-mission',
+          title: 'Notre mission',
+          body:
+            'Redonner du temps et de la tranquillité d’esprit à ceux qui travaillent sur la route. Tenir ses dossiers à jour ne devrait pas être un deuxième emploi.\n\nsupport@miletaxe.com · miletaxe.com',
+        },
+      ],
+    },
+    {
       id: 'cta',
       kind: 'cta',
       title: 'Arrêtez de reconstituer l’année en mars.',
@@ -191,6 +246,61 @@ const en: LandingContent = {
         { id: 'trust-2', title: 'Confirm before save', body: 'OCR and suggestions stay proposals. You confirm the amount, date and category.' },
         { id: 'trust-3', title: 'Public legal pages', body: 'Privacy policy and terms: https://miletaxe.com/legal/privacy and https://miletaxe.com/legal/terms' },
         { id: 'trust-4', title: 'One support address', body: 'support@miletaxe.com — for a question, an access request, or an account issue.' },
+      ],
+    },
+    {
+      id: 'about',
+      kind: 'cards',
+      variant: 'prose',
+      title: 'About us',
+      body:
+        'We are delivery drivers and Uber drivers. We built the app we were missing.\n\nEvery year at tax time, it was the same story. Mileage to rebuild from memory, gas and repair receipts nowhere to be found, income scattered across apps. An accountant cannot invent numbers, and we were losing time, sleep, and sometimes amounts we could have supported.\n\nOver the years we realized the problem was not a lack of discipline. What was missing was a simple tool built for people who work behind the wheel. So we built it.\n\nMileTax was born from our own experience, for delivery drivers and Uber, Lyft and taxi drivers in Canada and the United States.',
+      visible: true,
+      navId: 'about',
+      navLabel: 'About us',
+      cards: [
+        {
+          id: 'about-problem',
+          title: 'We know the problem by heart',
+          body:
+            'When you earn your living on the road, the year often looks like this:\n\n• Mileage scribbled on scrap paper — or not written down at all\n• Gas, mechanic, wash, parking and parts receipts scattered between the glovebox, a bag and your pockets\n• Income split across several platforms\n• And at filing time, a scramble to rebuild everything from memory\n\nWithout dated readings and readable receipts, your accountant cannot defend your numbers. They work with what you give them, and they cannot guess the rest.',
+        },
+        {
+          id: 'about-solution',
+          title: 'Our solution: a file that builds itself day by day',
+          body:
+            'Photograph your odometer — Frame the meter, confirm the reading. Your distances are built from your own dated figures, like a real logbook.\n\nPhotograph every receipt — Gas, mechanic work, oil changes, tires, repairs, washes, parking: take the photo before it disappears. Automated reading suggests the fields (amount, date, category), and nothing is saved until you confirm.\n\nTrack income and expenses — Everything in one place, without juggling apps or spreadsheets.\n\nHand over a package ready for your accountant — A preparatory PDF gathers your readings, receipts and income. You send it when you decide. No automatic email, and you always keep your originals.',
+        },
+        {
+          id: 'about-who',
+          title: 'Who is MileTax for?',
+          body:
+            '• Uber drivers\n• Lyft drivers\n• Taxi drivers, whether they own or rent their vehicle\n• Meal, parcel and grocery delivery drivers\n\nIf you drive for a living and your accountant asks for your paperwork every filing season, MileTax is for you.',
+        },
+        {
+          id: 'about-steps',
+          title: 'Three moves, all year',
+          body:
+            '1. Create your account: email, region, occupation.\n2. Capture as you go: the odometer after a run, the receipt before it vanishes, income when it lands.\n3. Hand over the package: when your accountant asks, your file is already there.',
+        },
+        {
+          id: 'about-not',
+          title: 'What we do not do — and why that is intentional',
+          body:
+            'MileTax is not tax software. No tax return, no tax or levy calculation, no pre-filled forms, no tax advice. The totals you see are the sum of what you entered, nothing more.\n\nRules change from country to country, province or state to province or state, and situation to situation. Your accountant is the only one who can advise you properly. Our job is to make their work easier, not to replace them.',
+        },
+        {
+          id: 'about-control',
+          title: 'You stay in control',
+          body:
+            '• You confirm everything: amount, date, category. Suggestions stay proposals.\n• Your data is yours: each file is isolated; you can export a copy and delete your account whenever you want.\n• Nothing is sent automatically to anyone.\n• Real human help: if something blocks, a support agent answers.',
+        },
+        {
+          id: 'about-mission',
+          title: 'Our mission',
+          body:
+            'Give time and peace of mind back to people who work on the road. Keeping records up to date should not be a second job.\n\nsupport@miletaxe.com · miletaxe.com',
+        },
       ],
     },
     {
