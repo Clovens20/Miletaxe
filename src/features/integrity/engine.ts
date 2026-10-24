@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { useAuth } from '@/features/auth/AuthProvider';
-import { consecutiveValidReadings } from '@/features/mileage/engine';
+import { consecutiveValidReadings, findOpenIncompleteDay } from '@/features/mileage/engine';
 import { useOdometerReadings } from '@/features/mileage/hooks';
 import { useExpenses, useReceipts } from '@/features/expenses/hooks';
 import { useIncome } from '@/features/income/hooks';
@@ -90,14 +90,18 @@ export function useIntegrityFindings() {
         const todayRows = vehicleReadings.filter((row) => row.recorded_on === today);
         const startedToday = todayRows.some((row) => row.kind === 'start_of_day' && row.is_valid);
         const endedToday = todayRows.some((row) => row.kind === 'end_of_day' && row.is_valid);
-        const recentHabit = vehicleReadings.some(
-          (row) => row.recorded_on >= weekAgo && row.recorded_on < today && row.is_valid,
-        );
-        if (!startedToday && (endedToday || recentHabit)) {
+        // Pas d’alerte « début manquant » le matin : seulement si une fin existe sans début (incohérent).
+        if (!startedToday && endedToday) {
           push('missing_start_of_day', 'odometer', vehicle.id);
         }
+        // Fin manquante : aujourd’hui après un début, ou une journée antérieure encore ouverte.
         if (startedToday && !endedToday) {
           push('missing_end_of_day', 'odometer', vehicle.id);
+        } else {
+          const open = findOpenIncompleteDay(vehicleReadings, vehicle.id);
+          if (open && open.date < today) {
+            push('missing_end_of_day', 'odometer', vehicle.id);
+          }
         }
         for (const row of vehicleReadings) {
           if (!row.is_valid || row.validation_status === 'invalid') {

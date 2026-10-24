@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Alert, StyleSheet, Text } from 'react-native';
-import { useRouter } from 'expo-router';
+import { type Href, useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import { useTranslation } from 'react-i18next';
 
@@ -53,10 +53,10 @@ export default function SettingsScreen() {
         <ListRow title={t('settings.version')} subtitle={t('settings.versionValue', { version })} />
         <ListRow title={t('settings.support')} subtitle={PRODUCT.supportEmail} />
         <ListRow
-          icon="wifi-outline"
-          title={t('more.internet')}
-          subtitle={t('more.internetHint')}
-          onPress={() => router.push('/(app)/settings/internet')}
+          icon="repeat-outline"
+          title={t('more.recurring')}
+          subtitle={t('more.recurringHint')}
+          onPress={() => router.push('/(app)/settings/recurring' as Href)}
         />
       </Card>
       <Text style={styles.label}>{t('settings.language')}</Text>

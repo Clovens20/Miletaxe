@@ -5,6 +5,7 @@ import {
   consecutiveValidReadings,
   currentOdometerFromReadings,
   evaluateProposedReading,
+  findOpenIncompleteDay,
   groupDailyMileage,
   normalizeReadingKind,
   previousValidReading,
@@ -148,6 +149,11 @@ export function useMileageDashboard(vehicleId?: string) {
       scoped.some((row) => row.recorded_on === today && row.kind === 'start_of_day' && row.is_valid) &&
         !scoped.some((row) => row.recorded_on === today && row.kind === 'end_of_day' && row.is_valid),
     ),
+    openIncompleteDay: (() => {
+      const firstVehicleId = vehicleId ?? vehicles.data?.[0]?.id;
+      if (!firstVehicleId) return null;
+      return findOpenIncompleteDay(scoped, firstVehicleId, unit);
+    })(),
   };
 }
 
@@ -218,6 +224,15 @@ export function useCreateOdometerReading() {
       });
       if (!evaluation.is_valid && !input.saveDespiteInvalid) {
         throw new Error('odometer_not_monotonic');
+      }
+      const open = findOpenIncompleteDay(
+        (allReadings.data ?? []).filter((row) => row.vehicle_id === input.vehicle_id),
+        input.vehicle_id,
+        input.unit,
+      );
+      if (open) {
+        const closing = input.kind === 'end_of_day' && input.recorded_on === open.date;
+        if (!closing) throw new Error('odometer_end_required');
       }
 
       let photo_path = input.photoPath ?? null;

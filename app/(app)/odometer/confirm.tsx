@@ -41,12 +41,13 @@ export default function ConfirmOdometerScreen() {
   const locale = i18n.language === 'en' ? 'en' : 'fr';
   const [editReading, setEditReading] = useState(extracted == null);
 
+  const forcedOn = draft?.force_recorded_on ?? draft?.extraction.recorded_on;
   const { control, handleSubmit, watch, setValue, formState } = useForm<OdometerValues>({
     resolver: zodResolver(odometerSchema),
     defaultValues: {
       vehicle_id: draft?.vehicle_id ?? '',
       reading: extracted != null ? String(extracted) : '',
-      recorded_on: draft?.extraction.recorded_on ?? todayIso(),
+      recorded_on: forcedOn ?? todayIso(),
       recorded_time: draft?.extraction.recorded_time ?? nowTimeHm(),
       kind: draft?.kind ?? 'start_of_day',
       unit,
@@ -68,6 +69,8 @@ export default function ConfirmOdometerScreen() {
 
   const changedExtracted = extracted != null && parsed != null && extracted !== parsed;
 
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   const save = handleSubmit(async (values) => {
     const reading = parseDecimal(values.reading);
     if (reading == null || !draft) return;
@@ -75,27 +78,38 @@ export default function ConfirmOdometerScreen() {
       setForceInvalid(true);
       return;
     }
-    await create.mutateAsync({
-      vehicle_id: values.vehicle_id,
-      reading,
-      unit: values.unit,
-      kind: values.kind,
-      recorded_on: values.recorded_on,
-      recorded_at: combineDateAndTime(values.recorded_on, values.recorded_time),
-      notes: values.notes,
-      photoUri: draft.photoUri,
-      photoPath: draft.photoPath,
-      extracted_reading: extracted ?? (candidates.includes(reading) ? reading : null),
-      ocr_status: extracted != null || candidates.includes(reading) ? 'complete' : 'failed',
-      ocr_payload: (draft.extraction.raw as Record<string, unknown> | undefined) ?? {
-        confidence: draft.extraction.confidence,
-      },
-      ocr_provider: draft.extraction.provider,
-      source: extracted != null || candidates.includes(reading) ? 'ocr' : 'typed',
-      saveDespiteInvalid: Boolean(evaluation && !evaluation.is_valid),
-    });
-    clearOdometerDraft();
-    router.replace('/(app)/(tabs)/mileage');
+    setSaveError(null);
+    try {
+      await create.mutateAsync({
+        vehicle_id: values.vehicle_id,
+        reading,
+        unit: values.unit,
+        kind: draft.lock_kind ? 'end_of_day' : values.kind,
+        recorded_on: draft.force_recorded_on ?? values.recorded_on,
+        recorded_at: combineDateAndTime(
+          draft.force_recorded_on ?? values.recorded_on,
+          values.recorded_time,
+        ),
+        notes: values.notes,
+        photoUri: draft.photoUri,
+        photoPath: draft.photoPath,
+        extracted_reading: extracted ?? (candidates.includes(reading) ? reading : null),
+        ocr_status: extracted != null || candidates.includes(reading) ? 'complete' : 'failed',
+        ocr_payload: (draft.extraction.raw as Record<string, unknown> | undefined) ?? {
+          confidence: draft.extraction.confidence,
+        },
+        ocr_provider: draft.extraction.provider,
+        source: extracted != null || candidates.includes(reading) ? 'ocr' : 'typed',
+        saveDespiteInvalid: Boolean(evaluation && !evaluation.is_valid),
+      });
+      clearOdometerDraft();
+      router.replace('/(app)/(tabs)/mileage');
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : '';
+      setSaveError(
+        message === 'odometer_end_required' ? t('mileage.mustCloseDayTitle') : t('common.error'),
+      );
+    }
   });
 
   if (!draft) {
@@ -149,13 +163,25 @@ export default function ConfirmOdometerScreen() {
         </View>
       ) : null}
       {changedExtracted ? <WarningBanner tone="info" title={t('mileage.extractedChanged')} /> : null}
-      <Controller
-        control={control}
-        name="kind"
-        render={({ field: { value, onChange } }) => (
-          <SegmentedControl value={value} onChange={onChange} options={readingKindOptions(t)} />
-        )}
-      />
+      {draft.force_recorded_on ? (
+        <WarningBanner
+          tone="warning"
+          title={t('mileage.mustCloseDayTitle')}
+          body={t('mileage.mustCloseDayConfirm', { date: draft.force_recorded_on })}
+        />
+      ) : null}
+      {saveError ? <WarningBanner tone="danger" title={saveError} /> : null}
+      {draft.lock_kind ? (
+        <Text style={styles.hint}>{t('mileage.kindEnd')}</Text>
+      ) : (
+        <Controller
+          control={control}
+          name="kind"
+          render={({ field: { value, onChange } }) => (
+            <SegmentedControl value={value} onChange={onChange} options={readingKindOptions(t)} />
+          )}
+        />
+      )}
       {editReading || extracted == null ? (
         <Controller
           control={control}
@@ -191,7 +217,12 @@ export default function ConfirmOdometerScreen() {
         control={control}
         name="recorded_on"
         render={({ field: { onChange, value } }) => (
-          <TextField label={t('mileage.date')} value={value} onChangeText={onChange} />
+          <TextField
+            label={t('mileage.date')}
+            value={value}
+            onChangeText={onChange}
+            editable={!draft.force_recorded_on}
+          />
         )}
       />
       <Controller

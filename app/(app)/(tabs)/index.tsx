@@ -7,12 +7,13 @@ import { Card } from '@/components/ui/Card';
 import { DisclaimerBanner } from '@/components/ui/DisclaimerBanner';
 import { ListRow } from '@/components/ui/ListRow';
 import { Screen } from '@/components/ui/Screen';
+import { WarningBanner } from '@/components/ui/WarningBanner';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useOpenAssistantCount } from '@/features/assistant/hooks';
 import { useHomeDashboard } from '@/features/dashboard/hooks';
 import { findingHref } from '@/features/dashboard/routes';
 import { localize } from '@/lib/i18n/localize';
-import { formatDistance, formatMoney, formatYearMonth } from '@/lib/format';
+import { formatDate, formatDistance, formatMoney, formatYearMonth } from '@/lib/format';
 import { useUnreadSupportReplies } from '@/features/support/hooks';
 import type { DistanceUnit, SupportedLocale } from '@/types/domain';
 import { colors, radius, space, type } from '@/theme';
@@ -81,7 +82,13 @@ export default function HomeScreen() {
           <ActionTile
             icon="speedometer-outline"
             label={t('home.logOdometer')}
-            onPress={() => router.push('/(app)/odometer/capture')}
+            onPress={() =>
+              router.push(
+                (dashboard.openIncompleteDay
+                  ? '/(app)/odometer/capture?kind=end_of_day'
+                  : '/(app)/odometer/capture') as Href,
+              )
+            }
           />
         ) : null}
         <ActionTile
@@ -90,6 +97,16 @@ export default function HomeScreen() {
           onPress={() => router.push('/(app)/income/new')}
         />
       </View>
+
+      {dashboard.openIncompleteDay ? (
+        <WarningBanner
+          tone="warning"
+          title={t('mileage.mustCloseDayTitle')}
+          body={t('mileage.mustCloseDayBody', {
+            date: formatDate(dashboard.openIncompleteDay.date, locale, profile?.country_code),
+          })}
+        />
+      ) : null}
 
       <Card>
         <Text style={styles.cardKicker}>{t('home.todaySection')}</Text>
@@ -118,16 +135,25 @@ export default function HomeScreen() {
                     ? formatMoney(dashboard.rentalTodayAmount, dashboard.currency, locale, profile?.country_code)
                     : dash
                 }
-                muted={!dashboard.rentalTodayLogged}
+                tone={dashboard.rentalTodayLogged ? 'ok' : 'muted'}
               />
             ) : null}
             {vehicle ? (
               <>
-                <TodayStat label={t('home.startOdometer')} value={formatReading(vehicle.start, vehicle.unit)} muted={vehicle.missingStart} />
-                <TodayStat label={t('home.endOdometer')} value={formatReading(vehicle.end, vehicle.unit)} muted={vehicle.missingEnd || vehicle.missingStart} />
+                <TodayStat
+                  label={t('home.startOdometer')}
+                  value={formatReading(vehicle.start, vehicle.unit)}
+                  tone={vehicle.missingStart ? 'muted' : vehicle.missingEnd ? 'warn' : 'ok'}
+                />
+                <TodayStat
+                  label={t('home.endOdometer')}
+                  value={formatReading(vehicle.end, vehicle.unit)}
+                  tone={vehicle.missingEnd || vehicle.missingStart ? 'warn' : 'ok'}
+                />
                 <TodayStat
                   label={t('home.todayDriven')}
                   value={formatDistance(dashboard.todayDistance, dashboard.unit, locale, profile?.country_code)}
+                  tone={vehicle.missingEnd || vehicle.missingStart ? 'muted' : 'ok'}
                 />
               </>
             ) : null}
@@ -233,11 +259,27 @@ export default function HomeScreen() {
   );
 }
 
-function TodayStat({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
+function TodayStat({
+  label,
+  value,
+  tone = 'ok',
+}: {
+  label: string;
+  value: string;
+  tone?: 'ok' | 'warn' | 'muted';
+}) {
   return (
     <View style={styles.todayStat}>
       <Text style={styles.odoLabel}>{label}</Text>
-      <Text style={[styles.odoValue, muted && styles.odoMuted]}>{value}</Text>
+      <Text
+        style={[
+          styles.odoValue,
+          tone === 'muted' && styles.odoMuted,
+          tone === 'warn' && styles.odoWarn,
+        ]}
+      >
+        {value}
+      </Text>
     </View>
   );
 }
@@ -375,6 +417,9 @@ const styles = StyleSheet.create({
   },
   odoMuted: {
     color: colors.textMuted,
+  },
+  odoWarn: {
+    color: colors.warning,
   },
   status: {
     gap: space.xs,

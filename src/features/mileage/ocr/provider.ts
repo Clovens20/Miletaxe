@@ -20,6 +20,9 @@ export type OdometerDraft = {
   photoUri: string;
   photoPath: string | null;
   extraction: OdometerExtraction;
+  /** Date imposée (ex. fin de journée oubliée la veille). */
+  force_recorded_on?: string;
+  lock_kind?: boolean;
 };
 
 export interface OdometerOcrProvider {

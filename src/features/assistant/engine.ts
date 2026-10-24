@@ -73,9 +73,6 @@ function signal(
 }
 
 function missingOdometer(input: AssistantAnalyzeInput): AssistantSignal[] {
-  const check = checkOf(input, 'missing_odometer_reading');
-  const lookback = numConfig(check?.config, 'lookback_days', 7);
-  const weekAgo = addDays(input.today, -lookback);
   const out: AssistantSignal[] = [];
   for (const vehicle of input.vehicles) {
     if (vehicle.tracking_mode === 'rental_daily') continue;
@@ -96,14 +93,14 @@ function missingOdometer(input: AssistantAnalyzeInput): AssistantSignal[] {
     const todayRows = rows.filter((row) => row.recorded_on === input.today);
     const started = todayRows.some((row) => row.kind === 'start_of_day' && row.is_valid);
     const ended = todayRows.some((row) => row.kind === 'end_of_day' && row.is_valid);
-    const recent = rows.some((row) => row.recorded_on >= weekAgo && row.recorded_on < input.today && row.is_valid);
-    if (!started && (ended || recent)) {
+    // Pas de rappel « début manquant » le matin — seulement fin sans début (incohérent).
+    if (!started && ended) {
       const item = signal(input, 'missing_odometer_reading', {
         fingerprint: `missing_odometer_reading:vehicle:${vehicle.id}:start:${input.today}`,
         entity_type: 'odometer',
         entity_id: vehicle.id,
         related_entity_id: null,
-        confidence: ended ? 'high' : 'medium',
+        confidence: 'high',
         evidence: { vehicle_id: vehicle.id, kind: 'start_of_day', date: input.today },
         proposed_patch: null,
       });
@@ -120,6 +117,34 @@ function missingOdometer(input: AssistantAnalyzeInput): AssistantSignal[] {
         proposed_patch: null,
       });
       if (item) out.push(item);
+    } else {
+      const byDate = new Map<string, typeof rows>();
+      for (const row of rows.filter((item) => item.is_valid)) {
+        const list = byDate.get(row.recorded_on) ?? [];
+        list.push(row);
+        byDate.set(row.recorded_on, list);
+      }
+      const openDate = [...byDate.entries()]
+        .filter(([date, day]) => {
+          if (date >= input.today) return false;
+          const hasStart = day.some((row) => row.kind === 'start_of_day');
+          const hasEnd = day.some((row) => row.kind === 'end_of_day');
+          return hasStart && !hasEnd;
+        })
+        .map(([date]) => date)
+        .sort()[0];
+      if (openDate) {
+        const item = signal(input, 'missing_odometer_reading', {
+          fingerprint: `missing_odometer_reading:vehicle:${vehicle.id}:end:${openDate}`,
+          entity_type: 'odometer',
+          entity_id: vehicle.id,
+          related_entity_id: null,
+          confidence: 'high',
+          evidence: { vehicle_id: vehicle.id, kind: 'end_of_day', date: openDate },
+          proposed_patch: null,
+        });
+        if (item) out.push(item);
+      }
     }
   }
   return out;

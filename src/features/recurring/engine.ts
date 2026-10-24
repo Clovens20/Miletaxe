@@ -1,12 +1,12 @@
 import { addMonths, startOfMonthIso, todayIso } from '@/lib/format';
-import type { RecurringChargeDraft, RecurringPlan } from './types';
+import type { RecurringChargeDraft, RecurringKind, RecurringPlan } from './types';
 
-export function recurringChargeRef(planId: string, month: string): string {
-  return `recurring:internet:${planId}:${month}`;
+export function recurringChargeRef(kind: RecurringKind, planId: string, month: string): string {
+  return `recurring:${kind}:${planId}:${month}`;
 }
 
 export function isRecurringChargeRef(value: string | null | undefined): boolean {
-  return Boolean(value?.startsWith('recurring:internet:'));
+  return Boolean(value?.startsWith('recurring:'));
 }
 
 export function planIsActive(plan: RecurringPlan, today = todayIso()): boolean {
@@ -28,7 +28,7 @@ export function monthsCoveredByPlan(plan: RecurringPlan, today = todayIso()): st
   return months;
 }
 
-export function missingInternetCharges(
+export function missingRecurringCharges(
   plans: RecurringPlan[],
   expenses: Array<{ reference_number?: string | null }>,
   today = todayIso(),
@@ -38,12 +38,12 @@ export function missingInternetCharges(
   );
   const drafts: RecurringChargeDraft[] = [];
   for (const plan of plans) {
-    if (plan.kind !== 'internet') continue;
     for (const month of monthsCoveredByPlan(plan, today)) {
-      const reference_number = recurringChargeRef(plan.id, month);
+      const reference_number = recurringChargeRef(plan.kind, plan.id, month);
       if (seen.has(reference_number)) continue;
       drafts.push({
         plan_id: plan.id,
+        kind: plan.kind,
         vendor_name: plan.vendor_name,
         amount: Number(plan.amount),
         currency: plan.currency,
@@ -57,8 +57,34 @@ export function missingInternetCharges(
   return drafts;
 }
 
-export function activeInternetPlan(plans: RecurringPlan[], today = todayIso()): RecurringPlan | undefined {
+/** @deprecated Prefer missingRecurringCharges */
+export function missingInternetCharges(
+  plans: RecurringPlan[],
+  expenses: Array<{ reference_number?: string | null }>,
+  today = todayIso(),
+): RecurringChargeDraft[] {
+  return missingRecurringCharges(
+    plans.filter((row) => row.kind === 'internet'),
+    expenses,
+    today,
+  );
+}
+
+export function activePlanOf(
+  plans: RecurringPlan[],
+  kind: RecurringKind,
+  today = todayIso(),
+): RecurringPlan | undefined {
   return plans
-    .filter((row) => row.kind === 'internet' && planIsActive(row, today))
+    .filter((row) => row.kind === kind && planIsActive(row, today))
     .sort((a, b) => b.started_on.localeCompare(a.started_on))[0];
+}
+
+export function activeInternetPlan(plans: RecurringPlan[], today = todayIso()): RecurringPlan | undefined {
+  return activePlanOf(plans, 'internet', today);
+}
+
+export function categoryCodeForRecurringKind(kind: RecurringKind): string {
+  if (kind === 'insurance') return 'insurance';
+  return 'phone';
 }

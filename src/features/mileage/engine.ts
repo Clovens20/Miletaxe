@@ -173,3 +173,15 @@ export function currentOdometerFromReadings(
   if (!latest) return null;
   return convertDistance(latest.reading, latest.unit, unit);
 }
+
+/** Plus ancienne journée avec début mais sans fin (y compris aujourd’hui). */
+export function findOpenIncompleteDay(
+  readings: OdometerReading[],
+  vehicleId: string,
+  unit: DistanceUnit = 'km',
+): DailyMileage | null {
+  const open = groupDailyMileage(readings, vehicleId, unit)
+    .filter((day) => Boolean(day.start) && (!day.end || day.warnings.includes('missing_end')))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  return open[0] ?? null;
+}

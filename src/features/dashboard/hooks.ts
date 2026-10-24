@@ -3,7 +3,7 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { useExpenses, useReceipts } from '@/features/expenses/hooks';
 import { useIncome } from '@/features/income/hooks';
 import { useIntegrityFindings } from '@/features/integrity/engine';
-import { consecutiveValidReadings, groupDailyMileage } from '@/features/mileage/engine';
+import { consecutiveValidReadings, findOpenIncompleteDay, groupDailyMileage } from '@/features/mileage/engine';
 import { useMileageDashboard, useOdometerReadings } from '@/features/mileage/hooks';
 import { rentalTotals, useRentalDays } from '@/features/rental/hooks';
 import { currentTaxYear, useTaxYears } from '@/features/tax-config/hooks';
@@ -31,7 +31,8 @@ export function useHomeDashboard() {
   const yearStart = taxYear?.starts_on;
   const yearEnd = taxYear?.ends_on;
 
-  const vehiclesToday = odometerVehiclesOf(vehicles.data).map((vehicle) => {
+  const odometerVehicles = odometerVehiclesOf(vehicles.data);
+  const vehiclesToday = odometerVehicles.map((vehicle) => {
     const days = groupDailyMileage(readings.data ?? [], vehicle.id, vehicle.distance_unit ?? unit);
     const todayDay = days.find((row) => row.date === today);
     return {
@@ -42,9 +43,16 @@ export function useHomeDashboard() {
       end: todayDay?.end?.reading ?? null,
       distance: todayDay?.distance != null && todayDay.distance > 0 ? todayDay.distance : null,
       missingStart: !todayDay?.start,
+      // Début reste « à compléter » (orange) tant que la fin du jour n’existe pas.
       missingEnd: Boolean(todayDay?.start && !todayDay.end),
     };
   });
+
+  const openIncompleteDay = (() => {
+    const first = odometerVehicles[0];
+    if (!first) return null;
+    return findOpenIncompleteDay(readings.data ?? [], first.id, first.distance_unit ?? unit);
+  })();
 
   const todayDistance = vehiclesToday.reduce((sum, row) => sum + (row.distance ?? 0), 0);
 
@@ -115,6 +123,7 @@ export function useHomeDashboard() {
     todayIncomeCount,
     todayReceiptCount,
     vehiclesToday,
+    openIncompleteDay,
     findings: findings.data ?? [],
     completeness,
     tone: completenessTone(completeness.score, completeness.blocking),

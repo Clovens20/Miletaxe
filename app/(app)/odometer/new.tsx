@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
@@ -11,20 +11,21 @@ import { Screen } from '@/components/ui/Screen';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { TextField } from '@/components/ui/TextField';
 import { WarningBanner } from '@/components/ui/WarningBanner';
-import { evaluateProposedReading, previousValidReading } from '@/features/mileage/engine';
+import { evaluateProposedReading, findOpenIncompleteDay, previousValidReading } from '@/features/mileage/engine';
 import { useCreateOdometerReading, useOdometerReadings, vehicleUnit } from '@/features/mileage/hooks';
 import { readingKindOptions } from '@/features/mileage/labels';
 import { useVehicles } from '@/features/vehicles/hooks';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { combineDateAndTime, formatDistance, nowTimeHm, parseDecimal, todayIso } from '@/lib/format';
+import { combineDateAndTime, formatDate, formatDistance, nowTimeHm, parseDecimal, todayIso } from '@/lib/format';
 import { odometerSchema, type OdometerValues } from '@/lib/validation/schemas';
 import type { DistanceUnit, OdometerReadingKind } from '@/types/domain';
 import { colors, type } from '@/theme';
 
 export default function NewOdometerScreen() {
-  const { vehicleId: queryVehicleId, kind: queryKind } = useLocalSearchParams<{
+  const { vehicleId: queryVehicleId, kind: queryKind, date: queryDate } = useLocalSearchParams<{
     vehicleId?: string;
     kind?: OdometerReadingKind;
+    date?: string;
   }>();
   const { t, i18n } = useTranslation();
   const router = useRouter();
@@ -39,7 +40,7 @@ export default function NewOdometerScreen() {
     defaultValues: {
       vehicle_id: defaultVehicle,
       reading: '',
-      recorded_on: todayIso(),
+      recorded_on: queryDate && /^\d{4}-\d{2}-\d{2}$/.test(queryDate) ? queryDate : todayIso(),
       recorded_time: nowTimeHm(),
       kind: queryKind ?? 'manual',
       unit: (profile?.default_distance_unit ?? 'km') as DistanceUnit,
@@ -62,6 +63,19 @@ export default function NewOdometerScreen() {
     }
   }, [setValue, vehicles.data, watch]);
 
+  const openDay = useMemo(() => {
+    if (!vehicleId) return null;
+    return findOpenIncompleteDay(readings.data ?? [], vehicleId, unit);
+  }, [readings.data, unit, vehicleId]);
+
+  const mustClose = Boolean(openDay);
+
+  useEffect(() => {
+    if (!openDay || !mustClose) return;
+    setValue('kind', 'end_of_day');
+    setValue('recorded_on', openDay.date);
+  }, [mustClose, openDay, setValue]);
+
   const parsed = parseDecimal(watch('reading'));
   const recordedAt = combineDateAndTime(watch('recorded_on'), watch('recorded_time'));
   const evaluation = useMemo(() => {
@@ -77,16 +91,20 @@ export default function NewOdometerScreen() {
 
   const locale = i18n.language === 'en' ? 'en' : 'fr';
 
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   const persist = async (values: OdometerValues, saveDespiteInvalid: boolean) => {
     const reading = parseDecimal(values.reading);
     if (reading == null) return;
+    const recordedOn = mustClose && openDay ? openDay.date : values.recorded_on;
+    const kind = mustClose ? 'end_of_day' : values.kind;
     await create.mutateAsync({
       vehicle_id: values.vehicle_id,
       reading,
       unit: values.unit,
-      kind: values.kind,
-      recorded_on: values.recorded_on,
-      recorded_at: combineDateAndTime(values.recorded_on, values.recorded_time),
+      kind,
+      recorded_on: recordedOn,
+      recorded_at: combineDateAndTime(recordedOn, values.recorded_time),
       notes: values.notes,
       source: 'typed',
       saveDespiteInvalid,
@@ -99,7 +117,15 @@ export default function NewOdometerScreen() {
       setForceInvalid(true);
       return;
     }
-    await persist(values, Boolean(evaluation && !evaluation.is_valid));
+    setSaveError(null);
+    try {
+      await persist(values, Boolean(evaluation && !evaluation.is_valid));
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : '';
+      setSaveError(
+        message === 'odometer_end_required' ? t('mileage.mustCloseDayTitle') : t('common.error'),
+      );
+    }
   });
 
   return (
@@ -121,18 +147,34 @@ export default function NewOdometerScreen() {
             label={t('mileage.photoFirst')}
             onPress={() =>
               router.replace(
-                `/(app)/odometer/capture?vehicleId=${vehicleId}&kind=${watch('kind')}`,
+                (mustClose
+                  ? `/(app)/odometer/capture?vehicleId=${vehicleId}&kind=end_of_day`
+                  : `/(app)/odometer/capture?vehicleId=${vehicleId}&kind=${watch('kind')}`) as Href,
               )
             }
           />
           <Text style={styles.hint}>{t('mileage.manualFallbackHint')}</Text>
-          <Controller
-            control={control}
-            name="kind"
-            render={({ field: { value, onChange } }) => (
-              <SegmentedControl value={value} onChange={(next) => onChange(next)} options={readingKindOptions(t)} />
-            )}
-          />
+          {mustClose && openDay ? (
+            <WarningBanner
+              tone="warning"
+              title={t('mileage.mustCloseDayTitle')}
+              body={t('mileage.mustCloseDayBody', {
+                date: formatDate(openDay.date, locale, profile?.country_code),
+              })}
+            />
+          ) : null}
+          {saveError ? <WarningBanner tone="danger" title={saveError} /> : null}
+          {mustClose ? (
+            <Text style={styles.hint}>{t('mileage.kindEnd')}</Text>
+          ) : (
+            <Controller
+              control={control}
+              name="kind"
+              render={({ field: { value, onChange } }) => (
+                <SegmentedControl value={value} onChange={(next) => onChange(next)} options={readingKindOptions(t)} />
+              )}
+            />
+          )}
           <Controller
             control={control}
             name="reading"
@@ -175,6 +217,7 @@ export default function NewOdometerScreen() {
                 label={t('mileage.date')}
                 value={value}
                 onChangeText={onChange}
+                editable={!mustClose}
                 error={fieldState.error ? t(fieldState.error.message ?? 'validation.date') : undefined}
               />
             )}

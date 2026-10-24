@@ -1,15 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Image, StyleSheet, Text } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/Button';
 import { ChoiceList } from '@/components/ui/ChoiceList';
 import { Screen } from '@/components/ui/Screen';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import { WarningBanner } from '@/components/ui/WarningBanner';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { setOdometerDraft } from '@/features/mileage/draft';
-import { useMileageDashboard, useOdometerOcr, vehicleUnit } from '@/features/mileage/hooks';
+import { findOpenIncompleteDay } from '@/features/mileage/engine';
+import { useMileageDashboard, useOdometerOcr, useOdometerReadings, vehicleUnit } from '@/features/mileage/hooks';
 import { readingKindOptions } from '@/features/mileage/labels';
 import { useOnDeviceOdometerOcr } from '@/features/mileage/ocr/OnDeviceOcrBridge';
 import { prepareOdometerImage } from '@/features/mileage/ocr/prepareImage';
@@ -20,9 +22,10 @@ import {
 } from '@/features/mileage/ocr/provider';
 import { uploadOdometerPhoto } from '@/features/mileage/storage';
 import { useVehicles } from '@/features/vehicles/hooks';
+import { formatDate } from '@/lib/format';
 import { captureOdometerImage, pickOdometerImage } from '@/lib/media/pickImage';
 import { isLocalMode } from '@/lib/supabase/client';
-import type { OdometerReadingKind } from '@/types/domain';
+import type { OdometerReadingKind, SupportedLocale } from '@/types/domain';
 import { colors, radius, type } from '@/theme';
 
 export default function CaptureOdometerScreen() {
@@ -30,16 +33,31 @@ export default function CaptureOdometerScreen() {
     vehicleId?: string;
     kind?: OdometerReadingKind;
   }>();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const vehicles = useVehicles();
   const ocr = useOdometerOcr();
   const { recognize, host } = useOnDeviceOdometerOcr();
   const [vehicleId, setVehicleId] = useState(queryVehicleId ?? vehicles.data?.[0]?.id ?? '');
   const dashboard = useMileageDashboard(vehicleId || undefined);
-  const initialKind: OdometerReadingKind =
-    queryKind === 'end_of_day' || queryKind === 'manual' ? queryKind : 'start_of_day';
+  const readings = useOdometerReadings(vehicleId || undefined);
+  const locale = (i18n.language === 'en' ? 'en' : 'fr') as SupportedLocale;
+
+  const openDay = useMemo(() => {
+    if (!vehicleId) return null;
+    return findOpenIncompleteDay(readings.data ?? [], vehicleId, dashboard.unit);
+  }, [dashboard.unit, readings.data, vehicleId]);
+
+  const mustCloseOpenDay = Boolean(openDay);
+  const forcedDate = mustCloseOpenDay ? openDay!.date : undefined;
+  const lockedKind = mustCloseOpenDay;
+
+  const initialKind: OdometerReadingKind = lockedKind
+    ? 'end_of_day'
+    : queryKind === 'end_of_day' || queryKind === 'manual'
+      ? queryKind
+      : 'start_of_day';
   const [kind, setKind] = useState<OdometerReadingKind>(initialKind);
   const [photo, setPhoto] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -52,8 +70,13 @@ export default function CaptureOdometerScreen() {
     if (!vehicleId && vehicles.data?.[0]?.id) setVehicleId(vehicles.data[0].id);
   }, [vehicleId, vehicles.data]);
 
+  useEffect(() => {
+    if (lockedKind) setKind('end_of_day');
+  }, [lockedKind, openDay?.date]);
+
   const analyze = async (uri: string) => {
     if (!user || !vehicleId) return;
+    const nextKind = lockedKind ? 'end_of_day' : kind;
     setBusy(true);
     setStatus('ocrBusy');
     try {
@@ -94,10 +117,17 @@ export default function CaptureOdometerScreen() {
 
       setOdometerDraft({
         vehicle_id: vehicleId,
-        kind,
+        kind: nextKind,
         photoUri: prepared.uri,
         photoPath,
-        extraction: { ...extraction, unit: extraction.unit ?? vehicleUnit(vehicle), requires_confirmation: true },
+        force_recorded_on: forcedDate,
+        lock_kind: lockedKind,
+        extraction: {
+          ...extraction,
+          unit: extraction.unit ?? vehicleUnit(vehicle),
+          recorded_on: forcedDate ?? extraction.recorded_on,
+          requires_confirmation: true,
+        },
       });
       router.replace('/(app)/odometer/confirm');
     } catch {
@@ -121,6 +151,10 @@ export default function CaptureOdometerScreen() {
     await analyze(uri);
   };
 
+  const manualHref = lockedKind
+    ? `/(app)/odometer/new?vehicleId=${vehicleId}&kind=end_of_day&date=${forcedDate}`
+    : `/(app)/odometer/new?vehicleId=${vehicleId}&kind=${kind}`;
+
   return (
     <Screen title={t('mileage.captureTitle')} subtitle={t('mileage.captureSubtitle')} scroll>
       {host}
@@ -128,17 +162,30 @@ export default function CaptureOdometerScreen() {
         <Button label={t('mileage.addVehicle')} onPress={() => router.replace('/(app)/vehicles/new')} />
       ) : (
         <>
+          {lockedKind && forcedDate ? (
+            <WarningBanner
+              tone="warning"
+              title={t('mileage.mustCloseDayTitle')}
+              body={t('mileage.mustCloseDayBody', {
+                date: formatDate(forcedDate, locale, profile?.country_code),
+              })}
+            />
+          ) : null}
           <Text style={styles.label}>{t('mileage.vehicle')}</Text>
           <ChoiceList
             value={vehicleId}
             onChange={setVehicleId}
             options={(vehicles.data ?? []).map((row) => ({ value: row.id, label: row.nickname }))}
           />
-          <SegmentedControl
-            value={kind}
-            onChange={(value) => setKind(value as OdometerReadingKind)}
-            options={readingKindOptions(t)}
-          />
+          {lockedKind ? (
+            <Text style={styles.lockedKind}>{t('mileage.kindEnd')}</Text>
+          ) : (
+            <SegmentedControl
+              value={kind}
+              onChange={(value) => setKind(value as OdometerReadingKind)}
+              options={readingKindOptions(t)}
+            />
+          )}
           <Text style={styles.hint}>{t('mileage.cropHint')}</Text>
           {photo ? <Image source={{ uri: photo }} style={styles.photo} /> : null}
           {status === 'ocrBusy' ? <Text style={styles.status}>{t('mileage.ocrBusy')}</Text> : null}
@@ -168,7 +215,7 @@ export default function CaptureOdometerScreen() {
             label={t('mileage.typeManually')}
             variant="ghost"
             disabled={busy}
-            onPress={() => router.push(`/(app)/odometer/new?vehicleId=${vehicleId}&kind=${kind}`)}
+            onPress={() => router.push(manualHref as Href)}
           />
         </>
       )}
@@ -185,6 +232,10 @@ const styles = StyleSheet.create({
   hint: {
     ...type.caption,
     color: colors.textSecondary,
+  },
+  lockedKind: {
+    ...type.bodyMedium,
+    color: colors.warning,
   },
   status: {
     ...type.bodyMedium,

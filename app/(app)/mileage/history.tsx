@@ -61,7 +61,11 @@ export default function MileageHistoryScreen() {
             title={formatDistance(row.reading, row.unit, locale, profile?.country_code)}
             subtitle={`${readingKindLabel(row.kind, t)} · ${formatDateTime(row.recorded_at, locale, profile?.country_code)}${flags ? ` · ${flags}` : ''}`}
             right={
-              evaluation.is_valid && evaluation.distance != null
+              // Distance seulement après la fin de journée (ou un manuel > 0), pas sur le début à 0 km.
+              row.kind !== 'start_of_day' &&
+              evaluation.is_valid &&
+              evaluation.distance != null &&
+              evaluation.distance > 0
                 ? formatDistance(evaluation.distance, row.unit, locale, profile?.country_code)
                 : undefined
             }

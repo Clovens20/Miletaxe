@@ -15,7 +15,7 @@ import { useMileageDashboard } from '@/features/mileage/hooks';
 import { readingKindLabel } from '@/features/mileage/labels';
 import { rentalTotals, useRentalDays } from '@/features/rental/hooks';
 import { odometerVehiclesOf, rentalVehiclesOf, useVehicles } from '@/features/vehicles/hooks';
-import { formatDateTime, formatDistance, formatMoney } from '@/lib/format';
+import { formatDate, formatDateTime, formatDistance, formatMoney } from '@/lib/format';
 import type { CurrencyCode, SupportedLocale } from '@/types/domain';
 import { colors, radius, space, type } from '@/theme';
 
@@ -80,8 +80,14 @@ export default function MileageDashboardScreen() {
               body={`${dashboard.invalidCount} · ${t('mileage.excluded')}`}
             />
           ) : null}
-          {dashboard.missingEndToday ? (
-            <WarningBanner tone="warning" title={t('mileage.incompleteDay')} body={t('mileage.missingEnd')} />
+          {dashboard.openIncompleteDay ? (
+            <WarningBanner
+              tone="warning"
+              title={t('mileage.incompleteDay')}
+              body={t('mileage.mustCloseDayBody', {
+                date: formatDate(dashboard.openIncompleteDay.date, locale, profile?.country_code),
+              })}
+            />
           ) : null}
 
           <View style={styles.metrics}>
@@ -112,7 +118,13 @@ export default function MileageDashboardScreen() {
             <QuickAction
               icon="sunny-outline"
               label={t('mileage.kindStart')}
-              onPress={() => router.push('/(app)/odometer/capture?kind=start_of_day')}
+              onPress={() =>
+                router.push(
+                  dashboard.openIncompleteDay
+                    ? '/(app)/odometer/capture?kind=end_of_day'
+                    : '/(app)/odometer/capture?kind=start_of_day',
+                )
+              }
             />
             <QuickAction
               icon="moon-outline"

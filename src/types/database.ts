@@ -267,7 +267,7 @@ export type Database = {
         Row: {
           id: string;
           user_id: string;
-          kind: 'internet';
+          kind: 'internet' | 'insurance';
           vendor_name: string;
           amount: number;
           currency: string;

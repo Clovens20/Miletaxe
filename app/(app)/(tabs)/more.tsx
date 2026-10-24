@@ -58,10 +58,10 @@ export default function MoreScreen() {
           onPress={() => router.push('/(app)/completeness')}
         />
         <ListRow
-          icon="wifi-outline"
-          title={t('more.internet')}
-          subtitle={t('more.internetHint')}
-          onPress={() => router.push('/(app)/settings/internet')}
+          icon="repeat-outline"
+          title={t('more.recurring')}
+          subtitle={t('more.recurringHint')}
+          onPress={() => router.push('/(app)/settings/recurring' as Href)}
         />
         <ListRow
           icon="briefcase-outline"

@@ -173,9 +173,9 @@ export default function ExpensesScreen() {
         onPress={() => router.push('/(app)/expenses/manual')}
       />
       <Button
-        label={t('more.internet')}
+        label={t('more.recurring')}
         variant="secondary"
-        onPress={() => router.push('/(app)/settings/internet')}
+        onPress={() => router.push('/(app)/settings/recurring' as Href)}
       />
       <Button
         label={t('expenses.pastTitle')}
