@@ -22,19 +22,19 @@ function imageSize(uri: string): Promise<{ width: number; height: number }> {
   });
 }
 
-/** Photo entière + coin bas-droit (total du compteur). */
+/** Photo entière (+ crop bas-droit optionnel pour 2e passe). */
 export async function prepareOdometerImage(uri: string): Promise<PreparedOdometerImage> {
   try {
-    const saved = await manipulateAsync(uri, [{ resize: { width: 1280 } }], {
-      compress: 0.8,
+    const saved = await manipulateAsync(uri, [{ resize: { width: 1024 } }], {
+      compress: 0.72,
       format: SaveFormat.JPEG,
       base64: true,
     });
     let clusterBase64: string | null = null;
     try {
       const { width, height } = await imageSize(saved.uri);
-      const cropWidth = Math.round(width * 0.55);
-      const cropHeight = Math.round(height * 0.42);
+      const cropWidth = Math.round(width * 0.6);
+      const cropHeight = Math.round(height * 0.45);
       const cluster = await manipulateAsync(
         saved.uri,
         [
@@ -47,7 +47,7 @@ export async function prepareOdometerImage(uri: string): Promise<PreparedOdomete
             },
           },
         ],
-        { compress: 0.85, format: SaveFormat.JPEG, base64: true },
+        { compress: 0.8, format: SaveFormat.JPEG, base64: true },
       );
       clusterBase64 = cluster.base64 ?? (await readBase64(cluster.uri));
     } catch {

@@ -8,7 +8,10 @@ export function findingHref(item: IntegrityFinding): Href {
     case 'vehicle':
       return '/(app)/vehicles/new';
     case 'odometer':
-      if (item.rule_code === 'invalid_odometer_reading' && item.entity_id) {
+      if (
+        (item.rule_code === 'invalid_odometer_reading' || item.rule_code === 'odometer_not_monotonic') &&
+        item.entity_id
+      ) {
         return `/(app)/odometer/${item.entity_id}` as Href;
       }
       if (item.rule_code === 'missing_end_of_day') {

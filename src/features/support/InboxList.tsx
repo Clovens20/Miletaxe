@@ -15,6 +15,7 @@ import { useSupportInbox } from './hooks';
 import type { SupportInboxRow, SupportStatus } from './types';
 
 type AgentTab = 'queue' | 'mine' | 'done';
+type AdminTab = 'queue' | 'progress' | 'tech' | 'done';
 
 function statusTone(status: SupportStatus): 'warning' | 'info' | 'danger' | 'success' {
   if (status === 'open') return 'warning';
@@ -28,39 +29,53 @@ export function InboxList({
   onOpen,
   variant = 'simple',
   agentId,
+  defaultAdminTab = 'tech',
 }: {
   filter?: (row: SupportInboxRow) => boolean;
   onOpen: (id: string) => void;
-  variant?: 'simple' | 'agent';
+  variant?: 'simple' | 'agent' | 'admin';
   agentId?: string;
+  /** Onglet initial côté admin (défaut : transferts techniques). */
+  defaultAdminTab?: AdminTab;
 }) {
   const { t, i18n } = useTranslation();
   const inbox = useSupportInbox();
   const locale = (i18n.language === 'en' ? 'en' : 'fr') as SupportedLocale;
-  const [tab, setTab] = useState<AgentTab>('queue');
+  const [agentTab, setAgentTab] = useState<AgentTab>('queue');
+  const [adminTab, setAdminTab] = useState<AdminTab>(defaultAdminTab);
   const [query, setQuery] = useState('');
 
   const all = inbox.data ?? [];
   const queue = all.filter((row) => row.status === 'open');
   const mine = all.filter((row) => row.status === 'claimed' && row.assigned_agent_id === agentId);
+  const inProgress = all.filter((row) => row.status === 'claimed');
+  const tech = all.filter((row) => row.status === 'escalated');
   const done = all.filter((row) => row.status === 'resolved');
 
   const rows = useMemo(() => {
     const source =
       variant === 'agent'
-        ? tab === 'queue'
+        ? agentTab === 'queue'
           ? queue
-          : tab === 'mine'
+          : agentTab === 'mine'
             ? mine
             : done
-        : all.filter((row) => (filter ? filter(row) : true));
+        : variant === 'admin'
+          ? adminTab === 'queue'
+            ? queue
+            : adminTab === 'progress'
+              ? inProgress
+              : adminTab === 'tech'
+                ? tech
+                : done
+          : all.filter((row) => (filter ? filter(row) : true));
     const needle = query.trim().toLowerCase();
     if (!needle) return source;
     return source.filter((row) => {
       const hay = `${row.user_name ?? ''} ${row.user_email ?? ''} ${row.last_message ?? ''}`.toLowerCase();
       return hay.includes(needle);
     });
-  }, [all, done, filter, mine, query, queue, tab, variant]);
+  }, [adminTab, agentTab, all, done, filter, inProgress, mine, query, queue, tech, variant]);
 
   if (inbox.isLoading) return <Text style={styles.muted}>{t('common.loading')}</Text>;
   if (inbox.isError) return <Text style={styles.error}>{t('support.loadFailed')}</Text>;
@@ -69,11 +84,23 @@ export function InboxList({
     <View style={styles.list}>
       {variant === 'agent' ? (
         <SegmentedControl
-          value={tab}
-          onChange={(value) => setTab(value as AgentTab)}
+          value={agentTab}
+          onChange={(value) => setAgentTab(value as AgentTab)}
           options={[
             { value: 'queue', label: `${t('support.tabQueue')} (${queue.length})` },
             { value: 'mine', label: `${t('support.tabMine')} (${mine.length})` },
+            { value: 'done', label: `${t('support.tabDone')} (${done.length})` },
+          ]}
+        />
+      ) : null}
+      {variant === 'admin' ? (
+        <SegmentedControl
+          value={adminTab}
+          onChange={(value) => setAdminTab(value as AdminTab)}
+          options={[
+            { value: 'queue', label: `${t('support.tabQueue')} (${queue.length})` },
+            { value: 'progress', label: `${t('support.tabInProgress')} (${inProgress.length})` },
+            { value: 'tech', label: `${t('support.tabTech')} (${tech.length})` },
             { value: 'done', label: `${t('support.tabDone')} (${done.length})` },
           ]}
         />

@@ -15,8 +15,9 @@ import {
   useJurisdictions,
   useOccupations,
 } from '@/features/tax-config/hooks';
+import { distanceUnitForCountry, distanceUnitLabel } from '@/features/tax-config/units';
 import { localeForCountry, setAppLocale } from '@/lib/i18n';
-import type { SupportedLocale } from '@/types/domain';
+import type { DistanceUnit, SupportedLocale } from '@/types/domain';
 import { colors, type } from '@/theme';
 
 export default function OnboardingScreen() {
@@ -31,12 +32,13 @@ export default function OnboardingScreen() {
   const [countryCode, setCountryCode] = useState('CA');
   const [preferredLocale, setPreferredLocale] = useState<SupportedLocale>(localeForCountry('CA'));
   const [jurisdictionId, setJurisdictionId] = useState('');
-  const [unit, setUnit] = useState<'km' | 'mi'>('km');
   const [cadence, setCadence] = useState<'annual' | 'semiannual'>('annual');
   const [saving, setSaving] = useState(false);
 
   const jurisdictions = useJurisdictions(countryCode);
   const selectedCountry = countries.data?.find((row) => row.code === countryCode);
+  const unit: DistanceUnit =
+    selectedCountry?.default_distance_unit ?? distanceUnitForCountry(countryCode);
 
   const countryOptions = useMemo(
     () => (countries.data ?? []).map((row) => ({ value: row.code, label: labelOf(row, locale) })),
@@ -98,8 +100,6 @@ export default function OnboardingScreen() {
             onChange={(value) => {
               setCountryCode(value);
               setJurisdictionId('');
-              const next = countries.data?.find((row) => row.code === value);
-              if (next) setUnit(next.default_distance_unit);
               const nextLocale = localeForCountry(value);
               setPreferredLocale(nextLocale);
               setAppLocale(nextLocale);
@@ -130,14 +130,10 @@ export default function OnboardingScreen() {
           <Text style={styles.title}>{t('onboarding.unitsTitle')}</Text>
           <Text style={styles.subtitle}>{t('onboarding.unitsSubtitle')}</Text>
           <Text style={styles.label}>{t('onboarding.distanceUnit')}</Text>
-          <SegmentedControl
-            value={unit}
-            onChange={(value) => setUnit(value as 'km' | 'mi')}
-            options={[
-              { value: 'km', label: t('onboarding.km') },
-              { value: 'mi', label: t('onboarding.mi') },
-            ]}
-          />
+          <Text style={styles.currency}>{distanceUnitLabel(unit, t)}</Text>
+          <Text style={styles.subtitle}>
+            {t('onboarding.distanceUnitLocked', { unit: distanceUnitLabel(unit, t) })}
+          </Text>
           <Text style={styles.currency}>
             {t('onboarding.currency')}: {selectedCountry?.default_currency}
           </Text>

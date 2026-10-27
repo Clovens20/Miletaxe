@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { StyleSheet, Text } from 'react-native';
 import { Controller, useForm } from 'react-hook-form';
 import { type Href, useRouter } from 'expo-router';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,10 +13,12 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { RentalRateEditor, SetupDayCountPicker } from '@/features/rental/RentalSchedule';
 import { convertRateAmount, resolveStoredDailyRate, type RentalRateMode } from '@/features/rental/engine';
 import { parseRentalAmount } from '@/features/rental/hooks';
+import { distanceUnitLabel, resolveDistanceUnit } from '@/features/tax-config/units';
 import { useCreateVehicle } from '@/features/vehicles/hooks';
 import { parseDecimal } from '@/lib/format';
 import { rentalVehicleSchema, vehicleSchema, type RentalVehicleValues, type VehicleValues } from '@/lib/validation/schemas';
 import type { CurrencyCode, DistanceUnit, SupportedLocale } from '@/types/domain';
+import { colors, type } from '@/theme';
 
 export default function NewVehicleScreen() {
   const { t, i18n } = useTranslation();
@@ -27,6 +30,10 @@ export default function NewVehicleScreen() {
   const [daysPerWeek, setDaysPerWeek] = useState(5);
   const locale = (i18n.language === 'en' ? 'en' : 'fr') as SupportedLocale;
   const currency = (profile?.default_currency ?? 'CAD') as CurrencyCode;
+  const distanceUnit: DistanceUnit = resolveDistanceUnit(
+    profile?.country_code,
+    profile?.default_distance_unit as DistanceUnit | null,
+  );
   const owned = useForm<VehicleValues>({
     resolver: zodResolver(vehicleSchema),
     defaultValues: {
@@ -35,7 +42,7 @@ export default function NewVehicleScreen() {
       model: '',
       year: '',
       current_odometer: '',
-      distance_unit: (profile?.default_distance_unit ?? 'km') as DistanceUnit,
+      distance_unit: distanceUnit,
       plate: '',
       notes: '',
     },
@@ -58,7 +65,7 @@ export default function NewVehicleScreen() {
       make: values.make,
       model: values.model,
       year: Number(values.year),
-      distance_unit: values.distance_unit,
+      distance_unit: distanceUnit,
       current_odometer: odometer,
       plate: values.plate || null,
       notes: values.notes || null,
@@ -72,7 +79,7 @@ export default function NewVehicleScreen() {
     if (amount == null) return;
     await create.mutateAsync({
       nickname: values.nickname,
-      distance_unit: (profile?.default_distance_unit ?? 'km') as DistanceUnit,
+      distance_unit: distanceUnit,
       tracking_mode: 'rental_daily',
       ownership_type: 'rented',
       daily_rental_rate: resolveStoredDailyRate(amount, rateMode, daysPerWeek),
@@ -206,7 +213,7 @@ export default function NewVehicleScreen() {
             name="current_odometer"
             render={({ field: { onChange, value }, fieldState }) => (
               <TextField
-                label={`${t('vehicles.currentOdometer')} (${owned.watch('distance_unit')})`}
+                label={`${t('vehicles.currentOdometer')} (${distanceUnitLabel(distanceUnit, t)})`}
                 hint={t('vehicles.currentOdometerHint')}
                 keyboardType="decimal-pad"
                 value={value}
@@ -215,14 +222,9 @@ export default function NewVehicleScreen() {
               />
             )}
           />
-          <SegmentedControl
-            value={owned.watch('distance_unit')}
-            onChange={(value) => owned.setValue('distance_unit', value as DistanceUnit)}
-            options={[
-              { value: 'km', label: t('onboarding.km') },
-              { value: 'mi', label: t('onboarding.mi') },
-            ]}
-          />
+          <Text style={styles.unitHint}>
+            {t('vehicles.unitLockedHint', { unit: distanceUnitLabel(distanceUnit, t) })}
+          </Text>
           <Controller
             control={owned.control}
             name="plate"
@@ -241,3 +243,11 @@ export default function NewVehicleScreen() {
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  unitHint: {
+    ...type.caption,
+    color: colors.textSecondary,
+    marginBottom: 8,
+  },
+});

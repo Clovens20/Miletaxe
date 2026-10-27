@@ -14,7 +14,7 @@ export type OnDeviceOcrText = {
   confidence: number;
 };
 
-const RECOGNIZE_TIMEOUT_MS = 70_000;
+const RECOGNIZE_TIMEOUT_MS = 22_000;
 
 export function useOnDeviceOcr(html: string = ON_DEVICE_ODOMETER_OCR_HTML) {
   const webviewRef = useRef<WebView>(null);

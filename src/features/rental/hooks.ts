@@ -1,11 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/features/auth/AuthProvider';
+import { resolveDistanceUnit } from '@/features/tax-config/units';
 import { rentalVehiclesOf, useCreateVehicle, type Vehicle } from '@/features/vehicles/hooks';
 import { isoDateOnly, parseDecimal, startOfMonthIso, todayIso } from '@/lib/format';
 import { loadLocal, newId, updateLocal } from '@/lib/local/store';
 import { getSupabase, isLocalMode } from '@/lib/supabase/client';
-import type { DistanceUnit } from '@/types/domain';
 
 import type { VehicleRentalDay } from './types';
 
@@ -71,7 +71,7 @@ export function useLogRentalDay() {
       if (!vehicle) {
         vehicle = await createVehicle.mutateAsync({
           nickname: (input.nickname ?? '').trim() || 'Location',
-          distance_unit: (profile?.default_distance_unit ?? 'km') as DistanceUnit,
+          distance_unit: resolveDistanceUnit(profile?.country_code, profile?.default_distance_unit),
           tracking_mode: 'rental_daily',
           ownership_type: 'rented',
           daily_rental_rate: input.rental_amount,
@@ -176,7 +176,7 @@ export function useLogRentalDays() {
       if (!vehicle && input.entries.length) {
         vehicle = await createVehicle.mutateAsync({
           nickname: (input.nickname ?? '').trim() || 'Location',
-          distance_unit: (profile?.default_distance_unit ?? 'km') as DistanceUnit,
+          distance_unit: resolveDistanceUnit(profile?.country_code, profile?.default_distance_unit),
           tracking_mode: 'rental_daily',
           ownership_type: 'rented',
           daily_rental_rate: rate,

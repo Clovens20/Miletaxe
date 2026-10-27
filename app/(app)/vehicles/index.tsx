@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ListRow } from '@/components/ui/ListRow';
 import { Screen } from '@/components/ui/Screen';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { resolveDistanceUnit } from '@/features/tax-config/units';
 import { isRentalVehicle, useVehicles } from '@/features/vehicles/hooks';
 import { formatDistance } from '@/lib/format';
 import type { SupportedLocale } from '@/types/domain';
-import { useAuth } from '@/features/auth/AuthProvider';
 
 export default function VehiclesScreen() {
   const { t, i18n } = useTranslation();
@@ -39,7 +40,12 @@ export default function VehiclesScreen() {
               isRentalVehicle(row)
                 ? undefined
                 : row.current_odometer != null
-                ? formatDistance(Number(row.current_odometer), row.distance_unit ?? 'km', locale, profile?.country_code)
+                ? formatDistance(
+                    Number(row.current_odometer),
+                    resolveDistanceUnit(profile?.country_code, row.distance_unit),
+                    locale,
+                    profile?.country_code,
+                  )
                 : undefined
             }
             onPress={() => router.push(`/(app)/vehicles/${row.id}` as Href)}

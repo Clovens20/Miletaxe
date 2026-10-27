@@ -152,7 +152,11 @@ export default function HomeScreen() {
                 />
                 <TodayStat
                   label={t('home.todayDriven')}
-                  value={formatDistance(dashboard.todayDistance, dashboard.unit, locale, profile?.country_code)}
+                  value={
+                    vehicle.distance == null
+                      ? dash
+                      : formatDistance(vehicle.distance, vehicle.unit, locale, profile?.country_code)
+                  }
                   tone={vehicle.missingEnd || vehicle.missingStart ? 'muted' : 'ok'}
                 />
               </>

@@ -10,6 +10,7 @@ import { ListRow } from '@/components/ui/ListRow';
 import { Screen } from '@/components/ui/Screen';
 import { WarningBanner } from '@/components/ui/WarningBanner';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { resolveDistanceUnit } from '@/features/tax-config/units';
 import {
   completeExpenseLines,
   headlineExpenseRows,
@@ -22,7 +23,7 @@ import {
 import { reportSummary, useAccountantPdfActions, useReports } from '@/features/reports/hooks';
 import { localize } from '@/lib/i18n/localize';
 import { formatDate, formatDistance, formatMoney, formatYearMonth } from '@/lib/format';
-import type { CurrencyCode, DistanceUnit, SupportedLocale } from '@/types/domain';
+import type { CurrencyCode, SupportedLocale } from '@/types/domain';
 import { colors, type } from '@/theme';
 
 export default function ReportDetailScreen() {
@@ -34,7 +35,10 @@ export default function ReportDetailScreen() {
   const locale = (i18n.language === 'en' ? 'en' : 'fr') as SupportedLocale;
   const report = reports.data?.find((row) => row.id === id);
   const summary = report ? reportSummary(report) : null;
-  const unit = (summary?.totals.unit ?? profile?.default_distance_unit ?? 'km') as DistanceUnit;
+  const unit = resolveDistanceUnit(
+    profile?.country_code,
+    summary?.totals.unit ?? profile?.default_distance_unit,
+  );
   const currency = (summary?.totals.currency ?? profile?.default_currency ?? 'CAD') as CurrencyCode;
   const country = profile?.country_code;
   const prefixes = locale === 'en' ? { expense: 'E', income: 'I', mileage: 'M' } : { expense: 'D', income: 'R', mileage: 'K' };

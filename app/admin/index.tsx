@@ -5,6 +5,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
 
+import { DeskAuthShell } from '@/components/desk/DeskAuthShell';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Screen } from '@/components/ui/Screen';
@@ -73,7 +74,7 @@ function AdminLogin({
   });
 
   return (
-    <Screen title={t('admin.loginTitle')} subtitle={t('admin.loginSubtitle')} scroll home={false} back={false}>
+    <DeskAuthShell title={t('admin.loginTitle')} subtitle={t('admin.loginSubtitle')}>
       <Controller
         control={control}
         name="email"
@@ -82,6 +83,7 @@ function AdminLogin({
             label={t('auth.email')}
             autoCapitalize="none"
             keyboardType="email-address"
+            autoComplete="email"
             value={value}
             onChangeText={onChange}
             error={fieldState.error ? t(fieldState.error.message ?? 'validation.required') : undefined}
@@ -105,7 +107,7 @@ function AdminLogin({
       />
       {formError ? <Text style={styles.error}>{formError}</Text> : null}
       <Button label={t('auth.login')} loading={formState.isSubmitting} onPress={onSubmit} />
-    </Screen>
+    </DeskAuthShell>
   );
 }
 
@@ -118,6 +120,11 @@ function AdminDashboard() {
   return (
     <Screen title={t('admin.dashboard')} subtitle={t('admin.statsHint')} scroll home={false} back={false}>
       {stats.isError ? <Text style={styles.error}>{t('admin.loadFailed')}</Text> : null}
+      <Button
+        label={t('support.adminInbox')}
+        variant="secondary"
+        onPress={() => router.push('/admin/inbox' as Href)}
+      />
       <Button
         label={t('admin.viewUsers', { count: users ?? '—' })}
         loading={stats.isLoading}

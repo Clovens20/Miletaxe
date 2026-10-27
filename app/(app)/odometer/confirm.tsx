@@ -30,7 +30,7 @@ export default function ConfirmOdometerScreen() {
   const create = useCreateOdometerReading();
   const [forceInvalid, setForceInvalid] = useState(false);
   const vehicle = vehicles.data?.find((row) => row.id === draft?.vehicle_id);
-  const unit = vehicleUnit(vehicle, draft?.extraction.unit ?? 'km');
+  const unit = vehicleUnit(vehicle, draft?.extraction.unit ?? 'km', profile?.country_code);
   const readings = useOdometerReadings(draft?.vehicle_id);
   const extracted = draft?.extraction.reading;
   const candidates = useMemo(() => {

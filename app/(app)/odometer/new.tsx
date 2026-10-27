@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { Alert, Platform, StyleSheet, Text } from 'react-native';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,10 +12,16 @@ import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { TextField } from '@/components/ui/TextField';
 import { WarningBanner } from '@/components/ui/WarningBanner';
 import { evaluateProposedReading, findOpenIncompleteDay, previousValidReading } from '@/features/mileage/engine';
-import { useCreateOdometerReading, useOdometerReadings, vehicleUnit } from '@/features/mileage/hooks';
+import {
+  useCreateOdometerReading,
+  useDeleteOdometerReading,
+  useOdometerReadings,
+  vehicleUnit,
+} from '@/features/mileage/hooks';
 import { readingKindOptions } from '@/features/mileage/labels';
 import { useVehicles } from '@/features/vehicles/hooks';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { resolveDistanceUnit } from '@/features/tax-config/units';
 import { combineDateAndTime, formatDate, formatDistance, nowTimeHm, parseDecimal, todayIso } from '@/lib/format';
 import { odometerSchema, type OdometerValues } from '@/lib/validation/schemas';
 import type { DistanceUnit, OdometerReadingKind } from '@/types/domain';
@@ -32,6 +38,7 @@ export default function NewOdometerScreen() {
   const { profile } = useAuth();
   const vehicles = useVehicles();
   const create = useCreateOdometerReading();
+  const removeReading = useDeleteOdometerReading();
   const [forceInvalid, setForceInvalid] = useState(false);
 
   const defaultVehicle = queryVehicleId ?? vehicles.data?.[0]?.id ?? '';
@@ -43,19 +50,23 @@ export default function NewOdometerScreen() {
       recorded_on: queryDate && /^\d{4}-\d{2}-\d{2}$/.test(queryDate) ? queryDate : todayIso(),
       recorded_time: nowTimeHm(),
       kind: queryKind ?? 'manual',
-      unit: (profile?.default_distance_unit ?? 'km') as DistanceUnit,
+      unit: resolveDistanceUnit(profile?.country_code, profile?.default_distance_unit as DistanceUnit | null),
       notes: '',
     },
   });
 
   const vehicleId = watch('vehicle_id');
   const vehicle = vehicles.data?.find((row) => row.id === vehicleId);
-  const unit = vehicleUnit(vehicle, (profile?.default_distance_unit ?? 'km') as DistanceUnit);
+  const unit = vehicleUnit(
+    vehicle,
+    (profile?.default_distance_unit ?? 'km') as DistanceUnit,
+    profile?.country_code,
+  );
   const readings = useOdometerReadings(vehicleId || undefined);
 
   useEffect(() => {
-    if (vehicle?.distance_unit) setValue('unit', vehicle.distance_unit);
-  }, [setValue, vehicle?.distance_unit]);
+    setValue('unit', unit);
+  }, [setValue, unit]);
 
   useEffect(() => {
     if (!watch('vehicle_id') && vehicles.data?.[0]?.id) {
@@ -164,6 +175,31 @@ export default function NewOdometerScreen() {
             />
           ) : null}
           {saveError ? <WarningBanner tone="danger" title={saveError} /> : null}
+          {mustClose && openDay ? (
+            <Button
+              label={t('mileage.discardIncompleteDay')}
+              variant="danger"
+              loading={removeReading.isPending}
+              onPress={() => {
+                const dateLabel = formatDate(openDay.date, locale, profile?.country_code);
+                const message = t('mileage.discardIncompleteDayConfirm', { date: dateLabel });
+                const go = () => {
+                  void removeReading
+                    .mutateAsync({ vehicleId, recordedOn: openDay.date })
+                    .then(() => router.replace('/(app)/(tabs)/mileage' as Href))
+                    .catch(() => Alert.alert(t('common.error')));
+                };
+                if (Platform.OS === 'web') {
+                  if (globalThis.confirm?.(message)) go();
+                  return;
+                }
+                Alert.alert(t('mileage.discardIncompleteDay'), message, [
+                  { text: t('common.cancel'), style: 'cancel' },
+                  { text: t('common.confirm'), style: 'destructive', onPress: go },
+                ]);
+              }}
+            />
+          ) : null}
           {mustClose ? (
             <Text style={styles.hint}>{t('mileage.kindEnd')}</Text>
           ) : (

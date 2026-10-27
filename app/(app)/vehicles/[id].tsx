@@ -8,12 +8,12 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ListRow } from '@/components/ui/ListRow';
 import { Screen } from '@/components/ui/Screen';
-import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { TextField } from '@/components/ui/TextField';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { RentalRateEditor, SetupDayCountPicker } from '@/features/rental/RentalSchedule';
 import { convertRateAmount, resolveStoredDailyRate, type RentalRateMode } from '@/features/rental/engine';
 import { parseRentalAmount } from '@/features/rental/hooks';
+import { distanceUnitLabel, resolveDistanceUnit } from '@/features/tax-config/units';
 import { isRentalVehicle, useDeleteVehicle, useUpdateVehicle, useVehicle } from '@/features/vehicles/hooks';
 import { formatDistance } from '@/lib/format';
 import type { CurrencyCode, DistanceUnit, SupportedLocale } from '@/types/domain';
@@ -71,7 +71,7 @@ export default function VehicleDetailScreen() {
       model: rental ? vehicle.data?.model : values.model,
       year: rental ? vehicle.data?.year : Number(values.year),
       plate: values.plate || null,
-      distance_unit: values.distance_unit,
+      distance_unit: resolveDistanceUnit(profile?.country_code, values.distance_unit),
       notes: values.notes || null,
       daily_rental_rate:
         rental && parsedRate != null ? resolveStoredDailyRate(parsedRate, rateMode, daysPerWeek) : undefined,
@@ -81,6 +81,7 @@ export default function VehicleDetailScreen() {
   });
 
   const rental = isRentalVehicle(vehicle.data ?? {});
+  const distanceUnit = resolveDistanceUnit(profile?.country_code, vehicle.data?.distance_unit);
 
   return (
     <Screen title={t('vehicles.edit')} scroll>
@@ -132,7 +133,7 @@ export default function VehicleDetailScreen() {
                 vehicle.data?.current_odometer != null
                   ? formatDistance(
                       Number(vehicle.data.current_odometer),
-                      vehicle.data.distance_unit ?? 'km',
+                      distanceUnit,
                       locale,
                       profile?.country_code,
                     )
@@ -163,14 +164,9 @@ export default function VehicleDetailScreen() {
               <TextField label={t('vehicles.year')} keyboardType="number-pad" value={value} onChangeText={onChange} />
             )}
           />
-          <SegmentedControl
-            value={watch('distance_unit')}
-            onChange={(value) => setValue('distance_unit', value as DistanceUnit)}
-            options={[
-              { value: 'km', label: t('onboarding.km') },
-              { value: 'mi', label: t('onboarding.mi') },
-            ]}
-          />
+          <Text style={styles.unitHint}>
+            {t('vehicles.unitLockedHint', { unit: distanceUnitLabel(distanceUnit, t) })}
+          </Text>
           <Controller
             control={control}
             name="plate"
@@ -219,5 +215,10 @@ const styles = StyleSheet.create({
   label: {
     ...type.captionMedium,
     color: colors.textSecondary,
+  },
+  unitHint: {
+    ...type.caption,
+    color: colors.textSecondary,
+    marginBottom: 8,
   },
 });

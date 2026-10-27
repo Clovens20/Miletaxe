@@ -44,7 +44,7 @@ export default function AdminLayout() {
         { href: '/admin', label: t('admin.dashboard'), active: pathname === '/admin' },
         {
           href: '/admin/inbox',
-          label: t('support.techInbox'),
+          label: t('support.adminInbox'),
           active: pathname.startsWith('/admin/inbox') || pathname.startsWith('/admin/thread'),
         },
         { href: '/admin/team', label: t('admin.employees'), active: pathname.startsWith('/admin/team') },

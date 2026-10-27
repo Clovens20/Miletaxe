@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Image, StyleSheet, Text } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Alert, Image, Platform, StyleSheet, Text } from 'react-native';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
 import { Badge } from '@/components/ui/Badge';
@@ -12,7 +12,13 @@ import { TextField } from '@/components/ui/TextField';
 import { WarningBanner } from '@/components/ui/WarningBanner';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { evaluateProposedReading, previousValidReading } from '@/features/mileage/engine';
-import { useOdometerReading, useOdometerReadings, useOdometerRevisions, useUpdateOdometerReading } from '@/features/mileage/hooks';
+import {
+  useDeleteOdometerReading,
+  useOdometerReading,
+  useOdometerReadings,
+  useOdometerRevisions,
+  useUpdateOdometerReading,
+} from '@/features/mileage/hooks';
 import { readingKindLabel } from '@/features/mileage/labels';
 import { getOdometerPhotoUrl } from '@/features/mileage/storage';
 import { formatDateTime, formatDistance, parseDecimal } from '@/lib/format';
@@ -28,6 +34,7 @@ export default function OdometerDetailScreen() {
   const all = useOdometerReadings(reading.data?.vehicle_id);
   const revisions = useOdometerRevisions(id);
   const update = useUpdateOdometerReading();
+  const removeReading = useDeleteOdometerReading();
   const [value, setValue] = useState('');
   const [notes, setNotes] = useState('');
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -78,6 +85,7 @@ export default function OdometerDetailScreen() {
         </Text>
         <Badge label={row.source === 'ocr' ? t('mileage.extracted') : t('mileage.kindManual')} />
       </Card>
+      <Text style={styles.hint}>{t('mileage.correctReadingHint')}</Text>
       <TextField
         label={`${t('mileage.reading')} (${row.unit})`}
         keyboardType="decimal-pad"
@@ -116,6 +124,28 @@ export default function OdometerDetailScreen() {
             saveDespiteInvalid: Boolean(evaluation && !evaluation.is_valid),
           });
           router.back();
+        }}
+      />
+      <Button
+        label={t('mileage.deleteReading')}
+        variant="danger"
+        loading={removeReading.isPending}
+        onPress={() => {
+          const message = t('mileage.deleteReadingConfirm');
+          const go = () => {
+            void removeReading
+              .mutateAsync({ id: row.id })
+              .then(() => router.replace('/(app)/mileage/history' as Href))
+              .catch(() => Alert.alert(t('common.error')));
+          };
+          if (Platform.OS === 'web') {
+            if (globalThis.confirm?.(message)) go();
+            return;
+          }
+          Alert.alert(t('mileage.deleteReading'), message, [
+            { text: t('common.cancel'), style: 'cancel' },
+            { text: t('common.confirm'), style: 'destructive', onPress: go },
+          ]);
         }}
       />
       <Text style={styles.section}>{t('mileage.auditTitle')}</Text>

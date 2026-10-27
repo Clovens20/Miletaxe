@@ -205,8 +205,11 @@ export function ConversationPanel({
       {showDeskActions && status === 'claimed' && !mine && role !== 'admin' ? (
         <Text style={styles.meta}>{t('support.claimedByOther')}</Text>
       ) : null}
-      {showDeskActions && status === 'escalated' ? (
+      {showDeskActions && status === 'escalated' && role !== 'admin' ? (
         <Text style={styles.meta}>{t('support.escalatedHint')}</Text>
+      ) : null}
+      {showDeskActions && status === 'claimed' && !mine && role === 'admin' ? (
+        <Text style={styles.meta}>{t('support.adminOversightHint')}</Text>
       ) : null}
 
       {showDeskActions && status === 'resolved' ? (
@@ -225,9 +228,9 @@ export function ConversationPanel({
 
       {showDeskActions && canAct && status && status !== 'resolved' && (status !== 'escalated' || role === 'admin') ? (
         <View style={styles.actions}>
-          {status === 'open' ? (
+          {status === 'open' || (status === 'claimed' && !mine && role === 'admin') ? (
             <Button
-              label={t('support.claim')}
+              label={status === 'claimed' ? t('support.takeOver') : t('support.claim')}
               loading={update.isPending}
               onPress={() =>
                 void update.mutateAsync({
@@ -237,7 +240,7 @@ export function ConversationPanel({
               }
             />
           ) : null}
-          {status === 'claimed' && mine ? (
+          {status === 'claimed' && (mine || role === 'admin') ? (
             <Button
               label={t('support.release')}
               variant="secondary"

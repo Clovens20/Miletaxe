@@ -11,10 +11,11 @@ export default function AdminInboxScreen() {
   const { isStaff } = useAuth();
 
   return (
-    <Screen title={t('support.techInbox')} subtitle={t('support.techInboxHint')} scroll home={false} back={false}>
+    <Screen title={t('support.adminInbox')} subtitle={t('support.adminInboxHint')} scroll home={false} back={false}>
       {isStaff ? (
         <InboxList
-          filter={(row) => row.status === 'escalated'}
+          variant="admin"
+          defaultAdminTab="tech"
           onOpen={(id) => router.push(`/admin/thread/${id}` as Href)}
         />
       ) : null}

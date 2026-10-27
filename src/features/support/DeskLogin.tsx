@@ -5,9 +5,8 @@ import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
 
-import { DeskLangToggle } from '@/components/desk/DeskLangToggle';
+import { DeskAuthShell } from '@/components/desk/DeskAuthShell';
 import { Button } from '@/components/ui/Button';
-import { Screen } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
 import { isAgentUser, isStaffUser } from '@/features/admin/staff';
 import { useAuth } from '@/features/auth/AuthProvider';
@@ -51,7 +50,7 @@ export function DeskLogin({
   });
 
   return (
-    <Screen title={title} subtitle={subtitle} scroll home={false} back={false}>
+    <DeskAuthShell title={title} subtitle={subtitle}>
       <Controller
         control={control}
         name="email"
@@ -60,6 +59,7 @@ export function DeskLogin({
             label={t('auth.email')}
             autoCapitalize="none"
             keyboardType="email-address"
+            autoComplete="email"
             value={value}
             onChangeText={onChange}
             error={fieldState.error ? t(fieldState.error.message ?? 'validation.required') : undefined}
@@ -88,8 +88,7 @@ export function DeskLogin({
           <Text style={styles.link}>{t('auth.forgotLink')}</Text>
         </Pressable>
       </Link>
-      <DeskLangToggle />
-    </Screen>
+    </DeskAuthShell>
   );
 }
 

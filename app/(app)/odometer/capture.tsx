@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Image, StyleSheet, Text } from 'react-native';
+import { Alert, Image, Platform, StyleSheet, Text } from 'react-native';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
@@ -11,10 +11,17 @@ import { WarningBanner } from '@/components/ui/WarningBanner';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { setOdometerDraft } from '@/features/mileage/draft';
 import { findOpenIncompleteDay } from '@/features/mileage/engine';
-import { useMileageDashboard, useOdometerOcr, useOdometerReadings, vehicleUnit } from '@/features/mileage/hooks';
+import {
+  useDeleteOdometerReading,
+  useMileageDashboard,
+  useOdometerOcr,
+  useOdometerReadings,
+  vehicleUnit,
+} from '@/features/mileage/hooks';
 import { readingKindOptions } from '@/features/mileage/labels';
 import { useOnDeviceOdometerOcr } from '@/features/mileage/ocr/OnDeviceOcrBridge';
 import { prepareOdometerImage } from '@/features/mileage/ocr/prepareImage';
+import { MIN_ACCEPT_CONFIDENCE } from '@/features/mileage/ocr/parse';
 import {
   emptyExtraction,
   extractionFromOcrText,
@@ -38,6 +45,7 @@ export default function CaptureOdometerScreen() {
   const { user, profile } = useAuth();
   const vehicles = useVehicles();
   const ocr = useOdometerOcr();
+  const removeReading = useDeleteOdometerReading();
   const { recognize, host } = useOnDeviceOdometerOcr();
   const [vehicleId, setVehicleId] = useState(queryVehicleId ?? vehicles.data?.[0]?.id ?? '');
   const dashboard = useMileageDashboard(vehicleId || undefined);
@@ -98,22 +106,37 @@ export default function CaptureOdometerScreen() {
         }
       };
 
-      const onDevicePromise = Promise.all([recognizeFrame(prepared.base64), recognizeFrame(prepared.clusterBase64)]).then(
-        ([full, cluster]) => mergeOdometerExtractions(cluster, full),
-      );
+      // Passe rapide : une seule lecture on-device. Crop + edge seulement si besoin.
+      let onDevice = await recognizeFrame(prepared.base64);
+      if (
+        (onDevice.reading == null || onDevice.confidence < MIN_ACCEPT_CONFIDENCE) &&
+        prepared.clusterBase64
+      ) {
+        const cluster = await recognizeFrame(prepared.clusterBase64);
+        onDevice = mergeOdometerExtractions(cluster, onDevice);
+      }
 
-      const edgePromise = (async () => {
-        if (isLocalMode()) return emptyExtraction('none');
-        photoPath = await uploadOdometerPhoto(user.id, prepared.uri, vehicleId);
-        return ocr.mutateAsync({
-          imageUri: prepared.uri,
-          storagePath: photoPath,
-          hintReading: hintReading ?? undefined,
-        });
-      })().catch(() => emptyExtraction('edge-failed'));
-
-      const [onDevice, edge] = await Promise.all([onDevicePromise, edgePromise]);
-      const extraction = mergeOdometerExtractions(edge, onDevice);
+      let extraction = onDevice;
+      const needsEdge = onDevice.reading == null || onDevice.confidence < MIN_ACCEPT_CONFIDENCE;
+      if (!isLocalMode()) {
+        try {
+          photoPath = await uploadOdometerPhoto(user.id, prepared.uri, vehicleId);
+        } catch {
+          photoPath = null;
+        }
+      }
+      if (needsEdge && !isLocalMode() && photoPath) {
+        try {
+          const edge = await ocr.mutateAsync({
+            imageUri: prepared.uri,
+            storagePath: photoPath,
+            hintReading: hintReading ?? undefined,
+          });
+          extraction = mergeOdometerExtractions(edge, onDevice);
+        } catch {
+          extraction = onDevice;
+        }
+      }
 
       setOdometerDraft({
         vehicle_id: vehicleId,
@@ -124,7 +147,8 @@ export default function CaptureOdometerScreen() {
         lock_kind: lockedKind,
         extraction: {
           ...extraction,
-          unit: extraction.unit ?? vehicleUnit(vehicle),
+          // Toujours l’unité du véhicule — évite mi/km mélangés.
+          unit: vehicleUnit(vehicle, 'km', profile?.country_code),
           recorded_on: forcedDate ?? extraction.recorded_on,
           requires_confirmation: true,
         },
@@ -154,6 +178,26 @@ export default function CaptureOdometerScreen() {
   const manualHref = lockedKind
     ? `/(app)/odometer/new?vehicleId=${vehicleId}&kind=end_of_day&date=${forcedDate}`
     : `/(app)/odometer/new?vehicleId=${vehicleId}&kind=${kind}`;
+
+  const discardIncompleteDay = () => {
+    if (!openDay || !vehicleId) return;
+    const dateLabel = formatDate(openDay.date, locale, profile?.country_code);
+    const message = t('mileage.discardIncompleteDayConfirm', { date: dateLabel });
+    const go = () => {
+      void removeReading
+        .mutateAsync({ vehicleId, recordedOn: openDay.date })
+        .then(() => router.replace('/(app)/(tabs)/mileage' as Href))
+        .catch(() => Alert.alert(t('common.error')));
+    };
+    if (Platform.OS === 'web') {
+      if (globalThis.confirm?.(message)) go();
+      return;
+    }
+    Alert.alert(t('mileage.discardIncompleteDay'), message, [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.confirm'), style: 'destructive', onPress: go },
+    ]);
+  };
 
   return (
     <Screen title={t('mileage.captureTitle')} subtitle={t('mileage.captureSubtitle')} scroll>
@@ -217,6 +261,15 @@ export default function CaptureOdometerScreen() {
             disabled={busy}
             onPress={() => router.push(manualHref as Href)}
           />
+          {lockedKind && forcedDate ? (
+            <Button
+              label={t('mileage.discardIncompleteDay')}
+              variant="danger"
+              loading={removeReading.isPending}
+              disabled={busy}
+              onPress={discardIncompleteDay}
+            />
+          ) : null}
         </>
       )}
       <Button label={t('common.cancel')} variant="ghost" disabled={busy} onPress={() => router.back()} />

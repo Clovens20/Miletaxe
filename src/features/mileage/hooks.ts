@@ -19,6 +19,7 @@ import { rebuildLocalSegments } from '@/lib/local/segments';
 import { loadLocal, newId, updateLocal } from '@/lib/local/store';
 import { getSupabase, isLocalMode } from '@/lib/supabase/client';
 import type { DistanceUnit, OdometerReadingKind, OdometerSource, ReadingValidationStatus, RevisionSource } from '@/types/domain';
+import { resolveDistanceUnit } from '@/features/tax-config/units';
 import { useVehicles, type Vehicle } from '@/features/vehicles/hooks';
 import type { DistanceSegment } from './types';
 
@@ -114,15 +115,17 @@ export function useDistanceSummary(yearStart?: string, yearEnd?: string, vehicle
 }
 
 export function useDailyMileage(vehicleId?: string) {
+  const { profile } = useAuth();
   const readings = useOdometerReadings(vehicleId);
   const vehicles = useVehicles();
   const vehicle = vehicles.data?.find((row) => row.id === vehicleId) ?? vehicles.data?.[0];
-  const unit = (vehicle?.distance_unit ?? 'km') as DistanceUnit;
+  const unit = resolveDistanceUnit(profile?.country_code, vehicle?.distance_unit);
   const data = vehicleId || vehicle?.id ? groupDailyMileage(readings.data ?? [], vehicleId ?? vehicle!.id, unit) : [];
   return { ...readings, data, unit, vehicle };
 }
 
 export function useMileageDashboard(vehicleId?: string) {
+  const { profile } = useAuth();
   const readings = useOdometerReadings(vehicleId);
   const segments = useDistanceSegments(vehicleId);
   const vehicles = useVehicles();
@@ -130,7 +133,10 @@ export function useMileageDashboard(vehicleId?: string) {
   const weekStart = startOfWeekIso(today);
   const monthStart = startOfMonthIso(today);
   const vehicle = vehicleId ? vehicles.data?.find((row) => row.id === vehicleId) : undefined;
-  const unit = (vehicle?.distance_unit ?? vehicles.data?.[0]?.distance_unit ?? 'km') as DistanceUnit;
+  const unit = resolveDistanceUnit(
+    profile?.country_code,
+    vehicle?.distance_unit ?? vehicles.data?.[0]?.distance_unit,
+  );
   const scoped = (readings.data ?? []).filter((row) => !vehicleId || row.vehicle_id === vehicleId);
   const invalidCount = scoped.filter((row) => !row.is_valid).length;
   const latest = consecutiveValidReadings(scoped).at(-1);
@@ -205,20 +211,22 @@ async function insertRevision(row: Omit<OdometerRevision, 'id' | 'created_at'> &
 }
 
 export function useCreateOdometerReading() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const client = useQueryClient();
   const allReadings = useOdometerReadings();
 
   return useMutation({
     mutationFn: async (input: CreateReadingInput) => {
       if (!user) throw new Error('unauthenticated');
+      // Pays prime : CA=km, US=mi — sans convertir le chiffre odomètre.
+      const unit = resolveDistanceUnit(profile?.country_code, input.unit);
       const previous = previousValidReading(
         (allReadings.data ?? []).filter((row) => row.vehicle_id === input.vehicle_id),
         input.recorded_at,
       );
       const evaluation = evaluateProposedReading(previous, {
         reading: input.reading,
-        unit: input.unit,
+        unit,
         recorded_on: input.recorded_on,
         recorded_at: input.recorded_at,
       });
@@ -228,7 +236,7 @@ export function useCreateOdometerReading() {
       const open = findOpenIncompleteDay(
         (allReadings.data ?? []).filter((row) => row.vehicle_id === input.vehicle_id),
         input.vehicle_id,
-        input.unit,
+        unit,
       );
       if (open) {
         const closing = input.kind === 'end_of_day' && input.recorded_on === open.date;
@@ -247,7 +255,7 @@ export function useCreateOdometerReading() {
         user_id: user.id,
         vehicle_id: input.vehicle_id,
         reading: input.reading,
-        unit: input.unit,
+        unit,
         kind: input.kind,
         recorded_on: input.recorded_on,
         recorded_at: input.recorded_at,
@@ -391,6 +399,55 @@ export function useUpdateOdometerReading() {
   });
 }
 
+export function useDeleteOdometerReading() {
+  const { user } = useAuth();
+  const client = useQueryClient();
+  const allReadings = useOdometerReadings();
+
+  return useMutation({
+    mutationFn: async (input: { id: string } | { vehicleId: string; recordedOn: string }) => {
+      if (!user) throw new Error('unauthenticated');
+      const targets =
+        'id' in input
+          ? (allReadings.data ?? []).filter((row) => row.id === input.id)
+          : (allReadings.data ?? []).filter(
+              (row) => row.vehicle_id === input.vehicleId && row.recorded_on === input.recordedOn,
+            );
+      if (!targets.length) throw new Error('not_found');
+      const ids = targets.map((row) => row.id);
+      const vehicleId = targets[0]!.vehicle_id;
+
+      if (isLocalMode()) {
+        await updateLocal((state) => ({
+          ...state,
+          readings: state.readings.filter((row) => !ids.includes((row as { id: string }).id)),
+          revisions: state.revisions.filter(
+            (row) => !ids.includes((row as { reading_id: string }).reading_id),
+          ),
+        }));
+        await rebuildLocalSegments(vehicleId);
+        return { ids, vehicleId };
+      }
+
+      const { error } = await getSupabase()
+        .from('odometer_readings')
+        .delete()
+        .in('id', ids)
+        .eq('user_id', user.id);
+      if (error) throw error;
+      return { ids, vehicleId };
+    },
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ['odometer'] });
+      client.invalidateQueries({ queryKey: ['distance-summary'] });
+      client.invalidateQueries({ queryKey: ['distance-segments'] });
+      client.invalidateQueries({ queryKey: ['vehicles'] });
+      client.invalidateQueries({ queryKey: ['integrity'] });
+      client.invalidateQueries({ queryKey: ['revisions'] });
+    },
+  });
+}
+
 export function useOdometerRevisions(readingId?: string) {
   const { user } = useAuth();
   return useQuery({
@@ -451,8 +508,13 @@ export function useEvaluateReading(vehicleId: string | undefined, proposed?: { r
   };
 }
 
-export function vehicleUnit(vehicle?: Vehicle, fallback: DistanceUnit = 'km'): DistanceUnit {
-  return vehicle?.distance_unit ?? fallback;
+/** Unité du véhicule : pays du profil d’abord (CA=km, US=mi), sinon unité stockée. */
+export function vehicleUnit(
+  vehicle?: Vehicle | null,
+  fallback: DistanceUnit = 'km',
+  countryCode?: string | null,
+): DistanceUnit {
+  return resolveDistanceUnit(countryCode, vehicle?.distance_unit ?? fallback);
 }
 
 export { addDays };
