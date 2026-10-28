@@ -6,14 +6,17 @@ import { Card } from '@/components/ui/Card';
 import { Screen } from '@/components/ui/Screen';
 import { useAdminDeleteUser, useAdminStats, useAdminUsers } from '@/features/admin/hooks';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { formatDateTime } from '@/lib/format';
+import type { SupportedLocale } from '@/types/domain';
 import { colors, space, type } from '@/theme';
 
 export default function AdminUsersScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user, isStaff } = useAuth();
   const list = useAdminUsers();
   const stats = useAdminStats();
   const remove = useAdminDeleteUser();
+  const locale = (i18n.language === 'en' ? 'en' : 'fr') as SupportedLocale;
 
   if (!isStaff) {
     return (
@@ -65,6 +68,17 @@ export default function AdminUsersScreen() {
           </Text>
           <Text style={styles.meta}>
             {t('admin.created')}: {row.created_at.slice(0, 10)}
+          </Text>
+          <Text style={styles.meta}>
+            {t('admin.lastSignIn')}:{' '}
+            {row.last_sign_in_at ? formatDateTime(row.last_sign_in_at, locale) : t('admin.neverSignedIn')}
+          </Text>
+          <Text style={styles.meta}>
+            {t('admin.lastActivity')}:{' '}
+            {row.last_activity_at ? formatDateTime(row.last_activity_at, locale) : '—'}
+          </Text>
+          <Text style={styles.meta}>
+            {t('admin.dataEvents7d', { count: row.data_events_7d ?? 0 })}
           </Text>
           {row.id === user?.id ? (
             <Text style={styles.hint}>{t('admin.cannotDeleteSelf')}</Text>
