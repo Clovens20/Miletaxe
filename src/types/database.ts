@@ -652,6 +652,18 @@ export type Database = {
           country_code: string | null;
           created_at: string;
           onboarding_completed_at: string | null;
+          last_sign_in_at: string | null;
+          last_activity_at: string | null;
+          data_events_7d: number;
+        }[];
+      };
+      admin_recent_movements: {
+        Args: { limit_count?: number };
+        Returns: {
+          occurred_at: string;
+          kind: string;
+          user_email: string | null;
+          user_name: string | null;
         }[];
       };
       is_agent: {

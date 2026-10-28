@@ -13,6 +13,7 @@ import { Screen } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
 import { useAdminMovements, useAdminStats } from '@/features/admin/hooks';
 import { isStaffUser } from '@/features/admin/staff';
+import type { AdminMovementRow } from '@/features/admin/types';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { formatDateTime } from '@/lib/format';
 import { getSupabase } from '@/lib/supabase/client';
@@ -122,6 +123,7 @@ function AdminDashboard() {
   const locale = (i18n.language === 'en' ? 'en' : 'fr') as SupportedLocale;
   const data = stats.data;
   const users = data?.users;
+  const movementRows: AdminMovementRow[] = movements.data ?? [];
 
   return (
     <Screen title={t('admin.dashboard')} subtitle={t('admin.statsHint')} scroll home={false} back={false}>
@@ -183,13 +185,13 @@ function AdminDashboard() {
       <Text style={styles.section}>{t('admin.sectionMovements')}</Text>
       <Text style={styles.hint}>{t('admin.movementsHint')}</Text>
       {movements.isError ? <Text style={styles.error}>{t('admin.loadFailed')}</Text> : null}
-      {movements.isLoading && !movements.data?.length ? (
+      {movements.isLoading && !movementRows.length ? (
         <Text style={styles.muted}>{t('common.loading')}</Text>
       ) : null}
-      {!movements.isLoading && !movements.data?.length ? (
+      {!movements.isLoading && !movementRows.length ? (
         <Text style={styles.muted}>{t('admin.movementsEmpty')}</Text>
       ) : null}
-      {(movements.data ?? []).map((row, index) => (
+      {movementRows.map((row, index) => (
         <Card key={`${row.kind}-${row.occurred_at}-${row.user_email ?? index}`} style={styles.movement}>
           <View style={styles.movementHead}>
             <Text style={styles.movementName}>{row.user_name || row.user_email || t('support.user')}</Text>
