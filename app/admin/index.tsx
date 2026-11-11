@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -119,11 +119,14 @@ function AdminDashboard() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const stats = useAdminStats();
-  const movements = useAdminMovements(80);
+  const movements = useAdminMovements(200);
   const locale = (i18n.language === 'en' ? 'en' : 'fr') as SupportedLocale;
   const data = stats.data;
   const users = data?.users;
   const movementRows: AdminMovementRow[] = movements.data ?? [];
+  const feeds = useMemo(() => groupMovementsByUser(movementRows), [movementRows]);
+  const [openUser, setOpenUser] = useState<string | null>(null);
+  const selected = feeds.find((feed) => feed.key === openUser) ?? null;
 
   return (
     <Screen title={t('admin.dashboard')} subtitle={t('admin.statsHint')} scroll home={false} back={false}>
@@ -183,24 +186,47 @@ function AdminDashboard() {
       </View>
 
       <Text style={styles.section}>{t('admin.sectionMovements')}</Text>
-      <Text style={styles.hint}>{t('admin.movementsHint')}</Text>
+      <Text style={styles.hint}>{selected ? t('admin.movementsUserHint') : t('admin.movementsHint')}</Text>
       {movements.isError ? <Text style={styles.error}>{t('admin.loadFailed')}</Text> : null}
-      {movements.isLoading && !movementRows.length ? (
+      {movements.isLoading && !feeds.length ? (
         <Text style={styles.muted}>{t('common.loading')}</Text>
       ) : null}
-      {!movements.isLoading && !movementRows.length ? (
+      {!movements.isLoading && !feeds.length ? (
         <Text style={styles.muted}>{t('admin.movementsEmpty')}</Text>
       ) : null}
-      {movementRows.map((row, index) => (
-        <Card key={`${row.kind}-${row.occurred_at}-${row.user_email ?? index}`} style={styles.movement}>
-          <View style={styles.movementHead}>
-            <Text style={styles.movementName}>{row.user_name || row.user_email || t('support.user')}</Text>
-            <Badge label={movementLabel(row.kind, t)} tone={movementTone(row.kind)} />
-          </View>
-          {row.user_email ? <Text style={styles.meta}>{row.user_email}</Text> : null}
-          <Text style={styles.meta}>{formatDateTime(row.occurred_at, locale)}</Text>
-        </Card>
-      ))}
+      {selected ? (
+        <>
+          <Button label={t('admin.movementsAllUsers')} variant="ghost" onPress={() => setOpenUser(null)} />
+          <Card style={styles.movement}>
+            <Text style={styles.movementName}>{selected.name || t('support.user')}</Text>
+            {selected.email ? <Text style={styles.meta}>{selected.email}</Text> : null}
+            <Text style={styles.meta}>{t('admin.movementsCount', { count: selected.rows.length })}</Text>
+          </Card>
+          {selected.rows.map((row, index) => (
+            <Card key={`${row.kind}-${row.occurred_at}-${index}`} style={styles.movement}>
+              <View style={styles.movementHead}>
+                <Text style={styles.meta}>{formatDateTime(row.occurred_at, locale)}</Text>
+                <Badge label={movementLabel(row.kind, t)} tone={movementTone(row.kind)} />
+              </View>
+            </Card>
+          ))}
+        </>
+      ) : (
+        feeds.map((feed) => (
+          <Pressable key={feed.key} onPress={() => setOpenUser(feed.key)}>
+            <Card style={styles.movement}>
+              <View style={styles.movementHead}>
+                <Text style={styles.movementName}>{feed.name || t('support.user')}</Text>
+                <Badge label={t('admin.movementsCount', { count: feed.rows.length })} tone="info" />
+              </View>
+              {feed.email ? <Text style={styles.meta}>{feed.email}</Text> : null}
+              <Text style={styles.meta}>
+                {t('admin.lastActivity')}: {formatDateTime(feed.latest, locale)}
+              </Text>
+            </Card>
+          </Pressable>
+        ))
+      )}
     </Screen>
   );
 }
@@ -220,6 +246,28 @@ function StatCard({
       <Text style={styles.statLabel}>{label}</Text>
     </Card>
   );
+}
+
+function groupMovementsByUser(rows: AdminMovementRow[]) {
+  const map = new Map<string, { key: string; name: string; email: string | null; latest: string; rows: AdminMovementRow[] }>();
+  for (const row of rows) {
+    const key = (row.user_email || row.user_name || 'unknown').trim().toLowerCase();
+    const current = map.get(key);
+    if (!current) {
+      map.set(key, {
+        key,
+        name: row.user_name || row.user_email || '',
+        email: row.user_email,
+        latest: row.occurred_at,
+        rows: [row],
+      });
+      continue;
+    }
+    current.rows.push(row);
+    if (row.occurred_at > current.latest) current.latest = row.occurred_at;
+    if (!current.name && row.user_name) current.name = row.user_name;
+  }
+  return [...map.values()].sort((a, b) => b.latest.localeCompare(a.latest));
 }
 
 function movementLabel(kind: string, t: (key: string) => string) {
