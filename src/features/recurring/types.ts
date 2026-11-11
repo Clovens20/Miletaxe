@@ -1,4 +1,4 @@
-export const RECURRING_KINDS = ['internet', 'insurance'] as const;
+export const RECURRING_KINDS = ['internet', 'insurance', 'custom'] as const;
 export type RecurringKind = (typeof RECURRING_KINDS)[number];
 
 export type RecurringPlan = {

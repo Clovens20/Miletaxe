@@ -411,6 +411,11 @@
     "suggestionBody": "Rien n'est finalisé tant que vous n'avez pas relu et confirmé chaque champ.",
     "confirmSave": "Confirmer et enregistrer",
     "discard": "Ignorer ce reçu",
+    "discardConfirm": "Ignorer ce reçu non enregistré ? Vous pourrez en photographier un autre.",
+    "deleteExpense": "Supprimer ce reçu",
+    "deleteExpenseConfirm": "Supprimer définitivement ce reçu et la dépense associée ? Cette action ne touche pas vos autres écritures.",
+    "expandPhoto": "Agrandir le reçu",
+    "expandPhotoHint": "Touchez l’image pour l’agrandir et vérifier les détails.",
     "detailTitle": "Détail du reçu",
     "auditTitle": "Corrections",
     "auditEmpty": "Aucune correction enregistrée.",
@@ -513,9 +518,9 @@
     "disclaimer": "Ces écritures aident le dossier. MileTax ne calcule pas d’impôt."
   },
   "recurring": {
-    "title": "Internet et assurance",
-    "subtitle": "Créez votre forfait une fois. MileTax inscrit le montant chaque mois.",
-    "intro": "Un nouveau compte commence ici : remplissez Internet et/ou Assurance ci-dessous. Vous pouvez changer le montant plus tard.",
+    "title": "Services mensuels",
+    "subtitle": "Créez un service une fois. MileTax inscrit le montant chaque mois.",
+    "intro": "Internet et assurance sont prêts. Pour un autre abonnement (téléphone, logiciel, stockage…), utilisez Ajouter un service.",
     "kindInsurance": "Assurance",
     "kindInternet": "Internet",
     "active": "Contrat en cours — vous pouvez modifier compagnie et montant",
@@ -546,7 +551,13 @@
     "emptyInternet": "Aucun forfait internet.",
     "emptyBody": "Configurez le montant une fois. L’écriture se crée chaque mois.",
     "loadFailed": "Impossible de charger les contrats. La mise à jour de la base est peut-être à appliquer.",
-    "disclaimer": "Ces écritures aident le dossier. MileTax ne calcule pas d’impôt."
+    "disclaimer": "Ces écritures aident le dossier. MileTax ne calcule pas d’impôt.",
+    "customTitle": "Autres services",
+    "customHint": "Téléphone, logiciel, stockage, abonnement… Ajoutez-en autant que vous voulez.",
+    "addService": "Ajouter un service",
+    "serviceName": "Nom du service",
+    "serviceNameHint": "Ex. : Téléphone, Adobe, entrepôt",
+    "vendorHintCustom": "Ex. : Fizz, Apple, Amazon"
   },
   "reports": {
     "title": "Dossiers pour le comptable",
@@ -672,7 +683,7 @@
     "accountant": "Votre comptable",
     "internet": "Forfait internet",
     "internetHint": "Montant mensuel inscrit automatiquement.",
-    "recurring": "Internet et assurance",
+    "recurring": "Services mensuels",
     "recurringHint": "Créer ou modifier le forfait mensuel (internet, assurance).",
     "settings": "Paramètres",
     "about": "À propos",

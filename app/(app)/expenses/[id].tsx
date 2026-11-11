@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Image, StyleSheet, Text } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Alert, Platform, StyleSheet, Text } from 'react-native';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
@@ -12,16 +12,23 @@ import { ListRow } from '@/components/ui/ListRow';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { canonicalCategories, parseOptionalAmount, receiptFormDefaults } from '@/features/expenses/engine';
-import { useExpense, useExpenseRevisions, useReceipt, useUpdateExpense } from '@/features/expenses/hooks';
+import {
+  useDeleteExpense,
+  useExpense,
+  useExpenseRevisions,
+  useReceipt,
+  useUpdateExpense,
+} from '@/features/expenses/hooks';
 import { expenseStatusLabel, paymentMethodLabel } from '@/features/expenses/labels';
 import { ReceiptFormFields } from '@/features/expenses/ReceiptForm';
+import { ReceiptPhoto } from '@/features/expenses/ReceiptPhoto';
 import { getReceiptPhotoUrl } from '@/features/expenses/storage';
 import { labelOf, useExpenseCategories } from '@/features/tax-config/hooks';
 import { useVehicles } from '@/features/vehicles/hooks';
 import { formatDateTime, parseDecimal, todayIso } from '@/lib/format';
 import { receiptReviewSchema, type ReceiptReviewValues } from '@/lib/validation/schemas';
 import type { SupportedLocale } from '@/types/domain';
-import { colors, radius, space, type } from '@/theme';
+import { colors, space, type } from '@/theme';
 
 export default function ReceiptDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -33,6 +40,7 @@ export default function ReceiptDetailScreen() {
   const receipt = useReceipt(expense.data?.receipt_id);
   const revisions = useExpenseRevisions(id);
   const update = useUpdateExpense();
+  const remove = useDeleteExpense();
   const categories = useExpenseCategories(profile?.country_code);
   const vehicles = useVehicles();
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -98,9 +106,27 @@ export default function ReceiptDetailScreen() {
     router.back();
   });
 
+  const confirmDelete = () => {
+    const message = t('expenses.deleteExpenseConfirm');
+    const go = () => {
+      void remove
+        .mutateAsync(row.id)
+        .then(() => router.replace('/(app)/expenses/history' as Href))
+        .catch(() => Alert.alert(t('common.error')));
+    };
+    if (Platform.OS === 'web') {
+      if (globalThis.confirm?.(message)) go();
+      return;
+    }
+    Alert.alert(t('expenses.deleteExpense'), message, [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.confirm'), style: 'destructive', onPress: go },
+    ]);
+  };
+
   return (
     <Screen title={t('expenses.detailTitle')} scroll>
-      {photoUrl ? <Image source={{ uri: photoUrl }} style={styles.photo} /> : null}
+      {photoUrl ? <ReceiptPhoto uri={photoUrl} height={220} /> : null}
       <Text style={styles.hint}>{t('expenses.originalKept')}</Text>
       <Card>
         <Text style={styles.meta}>
@@ -124,6 +150,12 @@ export default function ReceiptDetailScreen() {
         locale={locale}
       />
       <Button label={t('common.save')} loading={formState.isSubmitting || update.isPending} onPress={save} />
+      <Button
+        label={t('expenses.deleteExpense')}
+        variant="danger"
+        loading={remove.isPending}
+        onPress={confirmDelete}
+      />
       <Text style={styles.section}>{t('expenses.auditTitle')}</Text>
       {!revisions.data?.length ? (
         <Text style={styles.hint}>{t('expenses.auditEmpty')}</Text>
@@ -142,11 +174,6 @@ export default function ReceiptDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  photo: {
-    width: '100%',
-    height: 220,
-    borderRadius: radius.md,
-  },
   hint: {
     ...type.caption,
     color: colors.textSecondary,

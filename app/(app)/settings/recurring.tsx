@@ -53,6 +53,15 @@ export default function RecurringPlansScreen() {
           loading={plans.isLoading}
         />
       ))}
+      {!focusKind || focusKind === 'custom' ? (
+        <CustomServices
+          plans={plans.data ?? []}
+          today={today}
+          locale={locale}
+          currency={currency}
+          countryCode={profile?.country_code}
+        />
+      ) : null}
       <DisclaimerBanner text={t('recurring.disclaimer')} />
       <Button label={t('common.back')} variant="ghost" onPress={() => router.back()} />
     </Screen>
@@ -281,6 +290,223 @@ function KindSection({
         </View>
       ) : null}
     </Card>
+  );
+}
+
+function CustomServices({
+  plans,
+  today,
+  locale,
+  currency,
+  countryCode,
+}: {
+  plans: RecurringPlan[];
+  today: string;
+  locale: SupportedLocale;
+  currency: CurrencyCode;
+  countryCode?: string | null;
+}) {
+  const { t } = useTranslation();
+  const save = useSaveRecurringPlan();
+  const update = useUpdateRecurringPlan();
+  const endPlan = useEndRecurringPlan();
+  const active = useMemo(
+    () => plans.filter((row) => row.kind === 'custom' && planIsActive(row, today)),
+    [plans, today],
+  );
+  const past = useMemo(
+    () => plans.filter((row) => row.kind === 'custom' && !planIsActive(row, today)),
+    [plans, today],
+  );
+  const [adding, setAdding] = useState(false);
+  const [label, setLabel] = useState('');
+  const [vendor, setVendor] = useState('');
+  const [amount, setAmount] = useState('');
+  const [startedOn, setStartedOn] = useState(startOfMonthIso(today));
+  const [error, setError] = useState<string | null>(null);
+
+  const create = async () => {
+    const value = parseDecimal(amount);
+    if (!label.trim() || !vendor.trim() || value == null || value < 0) {
+      setError(t('validation.required'));
+      return;
+    }
+    if (startedOn > today) {
+      setError(t('validation.dateNotFuture'));
+      return;
+    }
+    setError(null);
+    try {
+      await save.mutateAsync({
+        kind: 'custom',
+        vendor_name: vendor.trim(),
+        amount: value,
+        started_on: startedOn,
+        notes: label.trim(),
+      });
+      setLabel('');
+      setVendor('');
+      setAmount('');
+      setStartedOn(startOfMonthIso(today));
+      setAdding(false);
+    } catch {
+      setError(t('common.error'));
+    }
+  };
+
+  return (
+    <Card style={styles.sectionCard}>
+      <Text style={styles.kindTitle}>{t('recurring.customTitle')}</Text>
+      <Text style={styles.hint}>{t('recurring.customHint')}</Text>
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {active.map((row) => (
+        <CustomPlanEditor
+          key={row.id}
+          plan={row}
+          today={today}
+          locale={locale}
+          currency={currency}
+          countryCode={countryCode}
+          onSave={(input) => update.mutateAsync(input)}
+          onEnd={(ended_on) => endPlan.mutateAsync({ id: row.id, ended_on })}
+          saving={update.isPending}
+          ending={endPlan.isPending}
+        />
+      ))}
+      {adding ? (
+        <>
+          <Text style={styles.kicker}>{t('recurring.addService')}</Text>
+          <TextField
+            label={t('recurring.serviceName')}
+            hint={t('recurring.serviceNameHint')}
+            value={label}
+            onChangeText={setLabel}
+          />
+          <TextField
+            label={t('recurring.vendor')}
+            hint={t('recurring.vendorHintCustom')}
+            value={vendor}
+            onChangeText={setVendor}
+          />
+          <TextField
+            label={t('recurring.amount')}
+            keyboardType="decimal-pad"
+            value={amount}
+            onChangeText={setAmount}
+          />
+          <TextField
+            label={t('recurring.startedOn')}
+            hint={t('recurring.startedOnHint')}
+            value={startedOn}
+            onChangeText={setStartedOn}
+            placeholder={t('expenses.datePlaceholder')}
+          />
+          <Button label={t('recurring.save')} loading={save.isPending} onPress={() => void create()} />
+          <Button label={t('common.cancel')} variant="ghost" onPress={() => setAdding(false)} />
+        </>
+      ) : (
+        <Button label={t('recurring.addService')} variant="secondary" onPress={() => setAdding(true)} />
+      )}
+      {past.length ? (
+        <View style={styles.pastBlock}>
+          <Text style={styles.kicker}>{t('recurring.pastTitle')}</Text>
+          {past.map((row) => (
+            <Text key={row.id} style={styles.meta}>
+              {row.notes || row.vendor_name}
+              {' · '}
+              {formatMoney(Number(row.amount), row.currency || currency, locale, countryCode)}
+            </Text>
+          ))}
+        </View>
+      ) : null}
+    </Card>
+  );
+}
+
+function CustomPlanEditor({
+  plan,
+  today,
+  locale,
+  currency,
+  countryCode,
+  onSave,
+  onEnd,
+  saving,
+  ending,
+}: {
+  plan: RecurringPlan;
+  today: string;
+  locale: SupportedLocale;
+  currency: CurrencyCode;
+  countryCode?: string | null;
+  onSave: (input: { id: string; vendor_name: string; amount: number; notes: string }) => Promise<unknown>;
+  onEnd: (endedOn: string) => Promise<unknown>;
+  saving: boolean;
+  ending: boolean;
+}) {
+  const { t } = useTranslation();
+  const [label, setLabel] = useState(plan.notes ?? '');
+  const [vendor, setVendor] = useState(plan.vendor_name);
+  const [amount, setAmount] = useState(String(plan.amount));
+  const [endedOn, setEndedOn] = useState(today);
+  const [error, setError] = useState<string | null>(null);
+
+  const save = async () => {
+    const value = parseDecimal(amount);
+    if (!label.trim() || !vendor.trim() || value == null || value < 0) {
+      setError(t('validation.required'));
+      return;
+    }
+    setError(null);
+    try {
+      await onSave({ id: plan.id, vendor_name: vendor.trim(), amount: value, notes: label.trim() });
+    } catch {
+      setError(t('common.error'));
+    }
+  };
+
+  const finish = async () => {
+    if (endedOn < plan.started_on) {
+      setError(t('recurring.endBeforeStart'));
+      return;
+    }
+    setError(null);
+    try {
+      await onEnd(endedOn);
+    } catch {
+      setError(t('common.error'));
+    }
+  };
+
+  return (
+    <View style={styles.endBlock}>
+      <Text style={styles.kicker}>{label.trim() || t('recurring.customTitle')}</Text>
+      <Text style={styles.meta}>
+        {t('recurring.since', { month: formatYearMonth(plan.started_on.slice(0, 7), locale, countryCode) })}
+        {' · '}
+        {formatMoney(Number(plan.amount), plan.currency || currency, locale, countryCode)}
+        {` · ${t('recurring.monthsLogged', { count: monthsCoveredByPlan(plan, today).length })}`}
+      </Text>
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+      <TextField label={t('recurring.serviceName')} value={label} onChangeText={setLabel} />
+      <TextField label={t('recurring.vendor')} value={vendor} onChangeText={setVendor} />
+      <TextField
+        label={t('recurring.amount')}
+        hint={t('recurring.amountEditHint')}
+        keyboardType="decimal-pad"
+        value={amount}
+        onChangeText={setAmount}
+      />
+      <Button label={t('recurring.saveChanges')} loading={saving} onPress={() => void save()} />
+      <TextField
+        label={t('recurring.endedOn')}
+        hint={t('recurring.endedOnHint')}
+        value={endedOn}
+        onChangeText={setEndedOn}
+        placeholder={t('expenses.datePlaceholder')}
+      />
+      <Button label={t('recurring.endContract')} variant="secondary" loading={ending} onPress={() => void finish()} />
+    </View>
   );
 }
 

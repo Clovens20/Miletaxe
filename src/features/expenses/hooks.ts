@@ -13,7 +13,7 @@ import {
   normalizeReceiptExtraction,
   type ReceiptExtraction,
 } from './ocr/provider';
-import { isOwnedReceiptPath, uploadReceiptOriginal } from './storage';
+import { deleteReceiptPhoto, isOwnedReceiptPath, uploadReceiptOriginal } from './storage';
 import type { ExpenseRecord, ExpenseRevision, ReceiptRecord } from './types';
 
 export type Expense = ExpenseRecord;
@@ -526,6 +526,73 @@ export function useDiscardReceipt() {
     },
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ['receipts'] });
+    },
+  });
+}
+
+/** Supprime une dépense enregistrée et, si présent, le reçu + photo associés. */
+export function useDeleteExpense() {
+  const { user } = useAuth();
+  const client = useQueryClient();
+  const expenses = useExpenses();
+
+  return useMutation({
+    mutationFn: async (expenseId: string) => {
+      if (!user) throw new Error('unauthenticated');
+      const current = expenses.data?.find((row) => row.id === expenseId);
+      if (!current) throw new Error('not_found');
+      const receiptId = current.receipt_id;
+
+      if (isLocalMode()) {
+        await updateLocal((state) => ({
+          ...state,
+          expenses: state.expenses.filter((row) => (row as { id: string }).id !== expenseId),
+          receipts: receiptId
+            ? state.receipts.filter((row) => (row as { id: string }).id !== receiptId)
+            : state.receipts,
+          expense_revisions: state.expense_revisions.filter(
+            (row) => (row as { expense_id?: string }).expense_id !== expenseId,
+          ),
+        }));
+        return;
+      }
+
+      let storagePath: string | null = null;
+      if (receiptId) {
+        const { data: receipt } = await getSupabase()
+          .from('receipts')
+          .select('storage_path')
+          .eq('id', receiptId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+        storagePath = receipt?.storage_path ?? null;
+      }
+
+      const { error: expenseError } = await getSupabase()
+        .from('expenses')
+        .delete()
+        .eq('id', expenseId)
+        .eq('user_id', user.id);
+      if (expenseError) throw expenseError;
+
+      if (receiptId) {
+        const { error: receiptError } = await getSupabase()
+          .from('receipts')
+          .delete()
+          .eq('id', receiptId)
+          .eq('user_id', user.id);
+        if (receiptError) throw receiptError;
+      }
+
+      if (storagePath) {
+        await deleteReceiptPhoto(storagePath, user.id);
+      }
+    },
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ['expenses'] });
+      client.invalidateQueries({ queryKey: ['receipts'] });
+      client.invalidateQueries({ queryKey: ['expense-revisions'] });
+      client.invalidateQueries({ queryKey: ['integrity'] });
     },
   });
 }

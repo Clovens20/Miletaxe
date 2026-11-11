@@ -46,3 +46,9 @@ export async function getReceiptPhotoUrl(path: string, userId?: string): Promise
   if (error) return null;
   return data.signedUrl;
 }
+
+export async function deleteReceiptPhoto(path: string, userId: string): Promise<void> {
+  if (!path || isLocalMode() || isLocalPhotoPath(path)) return;
+  if (!isOwnedReceiptPath(userId, path)) return;
+  await getSupabase().storage.from(STORAGE_BUCKETS.receipts).remove([path]);
+}

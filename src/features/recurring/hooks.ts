@@ -30,9 +30,11 @@ function hydratePlan(row: Record<string, unknown>): RecurringPlan {
   };
 }
 
-function defaultNote(kind: RecurringKind, locale?: string | null): string {
+function defaultNote(kind: RecurringKind, locale?: string | null, customLabel?: string | null): string {
+  if (kind === 'custom' && customLabel?.trim()) return customLabel.trim();
   const en = locale === 'en';
   if (kind === 'insurance') return en ? 'Monthly insurance' : 'Assurance mensuelle';
+  if (kind === 'custom') return en ? 'Monthly service' : 'Service mensuel';
   return en ? 'Monthly internet plan' : 'Forfait internet mensuel';
 }
 
@@ -74,7 +76,8 @@ export function useSaveRecurringPlan() {
     }) => {
       if (!user) throw new Error('unauthenticated');
       const today = todayIso();
-      if (activePlanOf(plans.data ?? [], input.kind, today)) {
+      // Internet et assurance : un contrat actif à la fois. Les autres services s’ajoutent librement.
+      if (input.kind !== 'custom' && activePlanOf(plans.data ?? [], input.kind, today)) {
         throw new Error('active_plan_exists');
       }
       const now = new Date().toISOString();
@@ -124,12 +127,13 @@ export function useUpdateRecurringPlan() {
   const client = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: { id: string; vendor_name: string; amount: number }) => {
+    mutationFn: async (input: { id: string; vendor_name: string; amount: number; notes?: string | null }) => {
       if (!user) throw new Error('unauthenticated');
       const now = new Date().toISOString();
       const patch = {
         vendor_name: input.vendor_name.trim(),
         amount: input.amount,
+        ...(input.notes !== undefined ? { notes: input.notes?.trim() || null } : {}),
         updated_at: now,
       };
       if (isLocalMode()) {
@@ -245,7 +249,7 @@ export function useEnsureRecurringCharges() {
             price_per_unit: null,
             payment_method: null,
             reference_number: draft.reference_number,
-            notes: draft.notes || defaultNote(draft.kind, profile?.preferred_locale),
+            notes: draft.notes || defaultNote(draft.kind, profile?.preferred_locale, draft.notes),
             status: 'complete',
             finalized_at: now,
             extracted_payload: null,

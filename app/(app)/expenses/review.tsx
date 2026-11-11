@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Image, StyleSheet, Text } from 'react-native';
+import { Alert, Platform, StyleSheet, Text } from 'react-native';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,6 +13,7 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { clearReceiptDraft, getReceiptDraft, setReceiptDraft, subscribeReceiptDraft } from '@/features/expenses/draft';
 import { canonicalCategories, parseOptionalAmount, receiptFormDefaults } from '@/features/expenses/engine';
 import { ReceiptFormFields } from '@/features/expenses/ReceiptForm';
+import { ReceiptPhoto } from '@/features/expenses/ReceiptPhoto';
 import { useDiscardReceipt, useExpenses, useFinalizeExpense, useReceipt } from '@/features/expenses/hooks';
 import { hasReceiptValues } from '@/features/expenses/ocr/parse';
 import { getReceiptPhotoUrl } from '@/features/expenses/storage';
@@ -21,7 +22,7 @@ import { useVehicles } from '@/features/vehicles/hooks';
 import { parseDecimal, todayIso, formatMoney, formatDate } from '@/lib/format';
 import { receiptReviewSchema, type ReceiptReviewValues } from '@/lib/validation/schemas';
 import type { SupportedLocale } from '@/types/domain';
-import { colors, radius, type } from '@/theme';
+import { colors, type } from '@/theme';
 
 export default function ReviewReceiptScreen() {
   const { receiptId: queryReceiptId, mode } = useLocalSearchParams<{ receiptId?: string; mode?: string }>();
@@ -163,7 +164,7 @@ export default function ReviewReceiptScreen() {
       subtitle={catchUp ? t('expenses.pastLead') : t('expenses.reviewSubtitle')}
       scroll
     >
-      {photoUrl ? <Image source={{ uri: photoUrl }} style={styles.photo} /> : null}
+      {photoUrl ? <ReceiptPhoto uri={photoUrl} height={280} /> : null}
       <Text style={styles.hint}>{t('expenses.originalKept')}</Text>
       <Card>
         <Text style={styles.kicker}>{t('expenses.extracted')}</Text>
@@ -196,10 +197,22 @@ export default function ReviewReceiptScreen() {
       <Button
         label={t('expenses.discard')}
         variant="ghost"
-        onPress={async () => {
-          if (receiptId) await discard.mutateAsync(receiptId);
-          clearReceiptDraft();
-          router.replace((catchUp ? '/(app)/expenses/past' : '/(app)/expenses/scan') as Href);
+        loading={discard.isPending}
+        onPress={() => {
+          const message = t('expenses.discardConfirm');
+          const go = async () => {
+            if (receiptId) await discard.mutateAsync(receiptId);
+            clearReceiptDraft();
+            router.replace((catchUp ? '/(app)/expenses/past' : '/(app)/expenses/scan') as Href);
+          };
+          if (Platform.OS === 'web') {
+            if (globalThis.confirm?.(message)) void go();
+            return;
+          }
+          Alert.alert(t('expenses.discard'), message, [
+            { text: t('common.cancel'), style: 'cancel' },
+            { text: t('common.confirm'), style: 'destructive', onPress: () => void go() },
+          ]);
         }}
       />
     </Screen>
@@ -207,13 +220,6 @@ export default function ReviewReceiptScreen() {
 }
 
 const styles = StyleSheet.create({
-  photo: {
-    width: '100%',
-    height: 280,
-    borderRadius: radius.md,
-    resizeMode: 'contain',
-    backgroundColor: colors.surfaceMuted,
-  },
   kicker: {
     ...type.captionMedium,
     color: colors.textSecondary,

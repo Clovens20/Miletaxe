@@ -411,6 +411,11 @@
     "suggestionBody": "Nothing is finalized until you review and confirm every field.",
     "confirmSave": "Confirm and save",
     "discard": "Discard this receipt",
+    "discardConfirm": "Discard this unsaved receipt? You can photograph another one.",
+    "deleteExpense": "Delete this receipt",
+    "deleteExpenseConfirm": "Permanently delete this receipt and its expense? Your other entries stay intact.",
+    "expandPhoto": "Expand receipt",
+    "expandPhotoHint": "Tap the image to enlarge it and check the details.",
     "detailTitle": "Receipt detail",
     "auditTitle": "Corrections",
     "auditEmpty": "No corrections recorded.",
@@ -513,9 +518,9 @@
     "disclaimer": "These entries help your records. MileTax does not calculate tax."
   },
   "recurring": {
-    "title": "Internet and insurance",
-    "subtitle": "Set your plan once. MileTax adds the amount every month.",
-    "intro": "New account? Start here: fill in Internet and/or Insurance below. You can change the amount later.",
+    "title": "Monthly services",
+    "subtitle": "Create a service once. MileTax adds the amount every month.",
+    "intro": "Internet and insurance are ready. For another subscription (phone, software, storage…), use Add a service.",
     "kindInsurance": "Insurance",
     "kindInternet": "Internet",
     "active": "Current plan — you can edit the provider and amount",
@@ -546,7 +551,13 @@
     "emptyInternet": "No internet plan yet.",
     "emptyBody": "Set the amount once. The entry is created every month.",
     "loadFailed": "Could not load contracts. The database update may still need to be applied.",
-    "disclaimer": "These entries help your records. MileTax does not calculate tax."
+    "disclaimer": "These entries help your records. MileTax does not calculate tax.",
+    "customTitle": "Other services",
+    "customHint": "Phone, software, storage, a subscription… Add as many as you need.",
+    "addService": "Add a service",
+    "serviceName": "Service name",
+    "serviceNameHint": "e.g. Phone, Adobe, storage",
+    "vendorHintCustom": "e.g. Fizz, Apple, Amazon"
   },
   "reports": {
     "title": "Accountant packages",
@@ -672,7 +683,7 @@
     "accountant": "Your accountant",
     "internet": "Internet plan",
     "internetHint": "Monthly amount added automatically.",
-    "recurring": "Internet and insurance",
+    "recurring": "Monthly services",
     "recurringHint": "Create or change your monthly internet or insurance plan.",
     "settings": "Settings",
     "about": "About",

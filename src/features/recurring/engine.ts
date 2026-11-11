@@ -86,5 +86,6 @@ export function activeInternetPlan(plans: RecurringPlan[], today = todayIso()): 
 
 export function categoryCodeForRecurringKind(kind: RecurringKind): string {
   if (kind === 'insurance') return 'insurance';
+  if (kind === 'custom') return 'other';
   return 'phone';
 }
