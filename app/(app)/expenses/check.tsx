@@ -12,6 +12,7 @@ import { PeriodSwitcher } from '@/components/ui/PeriodSwitcher';
 import { Screen } from '@/components/ui/Screen';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { canonicalCategories, periodExpenseSnapshot } from '@/features/expenses/engine';
+import { pendingReceiptListCopy } from '@/features/expenses/labels';
 import { useExpenses, useReceipts } from '@/features/expenses/hooks';
 import { useRecordPeriod } from '@/features/records/useRecordPeriod';
 import { useRentalDays } from '@/features/rental/hooks';
@@ -97,8 +98,17 @@ export default function ExpenseCheckScreen() {
             <ListRow
               key={row.id}
               icon="scan-outline"
-              title={row.original_filename || t('expenses.pendingItem')}
-              subtitle={t('expenses.ocrComplete')}
+              subtitleLines={3}
+              {...pendingReceiptListCopy(
+                row,
+                {
+                  unknown: t('expenses.pendingUnknown'),
+                  review: t('expenses.statusReview'),
+                  checkDetails: t('expenses.ocrComplete'),
+                },
+                (iso) => formatDate(iso, locale, profile?.country_code),
+                (amount, detected) => formatMoney(amount, detected ?? currency, locale, profile?.country_code),
+              )}
               onPress={() => router.push(`/(app)/expenses/review?receiptId=${row.id}` as Href)}
             />
           ))}

@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { type Href, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -34,11 +34,29 @@ export default function HomeScreen() {
   const formatReading = (value: number | null, unit: DistanceUnit) =>
     value == null ? dash : formatDistance(value, unit, locale, profile?.country_code);
 
+  const { width } = useWindowDimensions();
+  const compact = width < 480;
   const preview = dashboard.findings.slice(0, ALERT_PREVIEW);
   const extraAlerts = dashboard.findings.length - preview.length;
   const barColor =
     dashboard.tone === 'danger' ? colors.danger : dashboard.tone === 'warn' ? colors.warning : colors.success;
-  const reviewCount = (assistant.count ?? 0) + dashboard.completeness.total;
+  const suggestions = assistant.count ?? 0;
+  const statusCopy = (() => {
+    if (dashboard.isLoading) return t('common.loading');
+    const finding = dashboard.findings[0];
+    if (finding) return localize(finding.title_i18n, locale);
+    const { checkDone, checkTotal, blocking, warning } = dashboard.completeness;
+    if (checkDone < checkTotal) {
+      if (!dashboard.hasVehicles) return t('home.statusMissingVehicle');
+      if (!dashboard.hasOpeningOdometer) return t('home.statusMissingOdometer');
+      if (!dashboard.hasActivity) return t('home.statusMissingActivity');
+      if (blocking > 0 || warning > 0) return t('home.statusMissingAlerts');
+    }
+    if (suggestions > 0) {
+      return t('home.statusChecksDoneAssistant', { count: suggestions, total: checkTotal });
+    }
+    return t('home.completenessOk');
+  })();
   const vehicle = dashboard.vehiclesToday[0];
   const showOdometerAction = dashboard.hasOdometerVehicles || !dashboard.hasVehicles;
   const showRentalAction = dashboard.hasRentalVehicles || !dashboard.hasVehicles;
@@ -126,9 +144,10 @@ export default function HomeScreen() {
             />
           </>
         ) : (
-          <View style={styles.todayGrid}>
+          <View style={[styles.todayGrid, compact && styles.todayGridCompact]}>
             {dashboard.hasRentalVehicles ? (
               <TodayStat
+                compact={compact}
                 label={t('home.todayRental')}
                 value={
                   dashboard.rentalTodayLogged
@@ -141,16 +160,19 @@ export default function HomeScreen() {
             {vehicle ? (
               <>
                 <TodayStat
+                  compact={compact}
                   label={t('home.startOdometer')}
                   value={formatReading(vehicle.start, vehicle.unit)}
                   tone={vehicle.missingStart ? 'muted' : vehicle.missingEnd ? 'warn' : 'ok'}
                 />
                 <TodayStat
+                  compact={compact}
                   label={t('home.endOdometer')}
                   value={formatReading(vehicle.end, vehicle.unit)}
                   tone={vehicle.missingEnd || vehicle.missingStart ? 'warn' : 'ok'}
                 />
                 <TodayStat
+                  compact={compact}
                   label={t('home.todayDriven')}
                   value={
                     vehicle.distance == null
@@ -199,15 +221,7 @@ export default function HomeScreen() {
             ]}
           />
         </View>
-        <Text style={styles.statusCopy}>
-          {dashboard.isLoading
-            ? t('common.loading')
-            : dashboard.findings[0]
-              ? localize(dashboard.findings[0].title_i18n, locale)
-              : reviewCount
-                ? t('home.statusReview', { count: reviewCount })
-                : t('home.completenessOk')}
-        </Text>
+        <Text style={styles.statusCopy}>{statusCopy}</Text>
         <View style={styles.statusLinks}>
           <Pressable onPress={() => router.push('/(app)/completeness')}>
             <Text style={styles.link}>{t('home.completeness')}</Text>
@@ -222,18 +236,21 @@ export default function HomeScreen() {
         </View>
       </Card>
 
-      <View style={styles.metrics}>
+      <View style={[styles.metrics, compact && styles.metricsCompact]}>
         <MiniMetric
+          compact={compact}
           label={t('home.monthMileage')}
           value={formatDistance(dashboard.monthDistance, dashboard.unit, locale, profile?.country_code)}
           hint={monthLabel}
         />
         <MiniMetric
+          compact={compact}
           label={t('home.expensesTotal')}
           value={formatMoney(dashboard.yearExpenses, dashboard.currency, locale, profile?.country_code)}
           hint={t('home.taxYear', { year: dashboard.taxYear.year })}
         />
         <MiniMetric
+          compact={compact}
           label={t('home.incomeTotal')}
           value={formatMoney(dashboard.yearIncome, dashboard.currency, locale, profile?.country_code)}
         />
@@ -267,13 +284,15 @@ function TodayStat({
   label,
   value,
   tone = 'ok',
+  compact = false,
 }: {
   label: string;
   value: string;
   tone?: 'ok' | 'warn' | 'muted';
+  compact?: boolean;
 }) {
   return (
-    <View style={styles.todayStat}>
+    <View style={[styles.todayStat, compact && styles.todayStatCompact]}>
       <Text style={styles.odoLabel}>{label}</Text>
       <Text
         style={[
@@ -288,12 +307,31 @@ function TodayStat({
   );
 }
 
-function MiniMetric({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function MiniMetric({
+  label,
+  value,
+  hint,
+  compact = false,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  compact?: boolean;
+}) {
   return (
-    <View style={styles.mini}>
-      <Text style={styles.odoLabel}>{label}</Text>
-      <Text style={styles.miniValue}>{value}</Text>
-      {hint ? <Text style={styles.miniHint} numberOfLines={1}>{hint}</Text> : null}
+    <View style={[styles.mini, compact && styles.miniCompact]}>
+      <View style={styles.miniCopy}>
+        <Text style={styles.odoLabel}>{label}</Text>
+        {hint ? <Text style={styles.miniHint}>{hint}</Text> : null}
+      </View>
+      <Text
+        style={[styles.miniValue, compact && styles.miniValueCompact]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.75}
+      >
+        {value}
+      </Text>
     </View>
   );
 }
@@ -402,9 +440,17 @@ const styles = StyleSheet.create({
     gap: space.sm,
     marginTop: space.xs,
   },
+  todayGridCompact: {
+    flexWrap: 'wrap',
+  },
   todayStat: {
     flex: 1,
     gap: 2,
+  },
+  todayStatCompact: {
+    flexGrow: 1,
+    flexBasis: '46%',
+    flexShrink: 1,
   },
   todayMeta: {
     ...type.caption,
@@ -466,6 +512,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: space.sm,
   },
+  metricsCompact: {
+    flexDirection: 'column',
+  },
   mini: {
     flex: 1,
     backgroundColor: colors.surface,
@@ -475,9 +524,23 @@ const styles = StyleSheet.create({
     padding: space.sm,
     gap: 2,
   },
+  miniCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: space.sm,
+  },
+  miniCopy: {
+    flexShrink: 1,
+    gap: 2,
+  },
   miniValue: {
     ...type.callout,
     color: colors.text,
+  },
+  miniValueCompact: {
+    flexShrink: 0,
+    textAlign: 'right',
   },
   miniHint: {
     ...type.caption,

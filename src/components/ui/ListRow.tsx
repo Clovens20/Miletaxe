@@ -6,12 +6,13 @@ import { colors, space, type } from '@/theme';
 type Props = {
   title: string;
   subtitle?: string;
+  subtitleLines?: number;
   icon?: keyof typeof Ionicons.glyphMap;
   onPress?: () => void;
   right?: string;
 };
 
-export function ListRow({ title, subtitle, icon, onPress, right }: Props) {
+export function ListRow({ title, subtitle, subtitleLines, icon, onPress, right }: Props) {
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.row, pressed && styles.pressed]} disabled={!onPress}>
       {icon ? (
@@ -20,8 +21,14 @@ export function ListRow({ title, subtitle, icon, onPress, right }: Props) {
         </View>
       ) : null}
       <View style={styles.copy}>
-        <Text style={styles.title}>{title}</Text>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        <Text style={styles.title} numberOfLines={2}>
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text style={styles.subtitle} numberOfLines={subtitleLines}>
+            {subtitle}
+          </Text>
+        ) : null}
       </View>
       {right ? <Text style={styles.right}>{right}</Text> : null}
       {onPress ? <Ionicons name="chevron-forward" size={18} color={colors.textMuted} /> : null}

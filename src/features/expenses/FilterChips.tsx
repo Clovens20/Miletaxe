@@ -14,7 +14,13 @@ export function FilterChips({
   onChange: (value: string) => void;
 }) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row} nestedScrollEnabled>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.scroller}
+      contentContainerStyle={styles.row}
+      nestedScrollEnabled
+    >
       {options.map((option) => {
         const active = option.value === value;
         return (
@@ -32,6 +38,11 @@ export function FilterChips({
 }
 
 const styles = StyleSheet.create({
+  scroller: {
+    flexGrow: 0,
+    width: '100%',
+    maxWidth: '100%',
+  },
   row: {
     gap: space.xs,
     paddingVertical: 2,

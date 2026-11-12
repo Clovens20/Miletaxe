@@ -1,3 +1,4 @@
+import { Text, useWindowDimensions } from 'react-native';
 import { Tabs, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -6,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUnreadSupportReplies } from '@/features/support/hooks';
 import { colors, fonts } from '@/theme';
 
-const TAB_BAR_CONTENT_HEIGHT = 56;
+const TAB_BAR_CONTENT_HEIGHT = 64;
 
 export default function TabsLayout() {
   const { t } = useTranslation();
@@ -16,6 +17,8 @@ export default function TabsLayout() {
   const onMessages = pathname === '/messages' || pathname.endsWith('/messages');
   const badge = !onMessages && supportReplies.count ? String(supportReplies.count) : undefined;
   const bottomInset = Math.max(insets.bottom, 0);
+  const { width } = useWindowDimensions();
+  const labelSize = width < 400 ? 10 : 11;
 
   return (
     <Tabs
@@ -24,6 +27,7 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
+        tabBarAllowFontScaling: false,
         tabBarStyle: {
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
@@ -32,12 +36,31 @@ export default function TabsLayout() {
         },
         tabBarItemStyle: {
           paddingVertical: 2,
+          paddingHorizontal: 0,
+          minWidth: 0,
         },
-        tabBarLabelStyle: {
-          fontFamily: fonts.medium,
-          fontSize: 11,
+        tabBarIconStyle: {
           marginBottom: 0,
         },
+        tabBarLabel: ({ color, children }) => (
+          <Text
+            numberOfLines={2}
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
+            allowFontScaling={false}
+            style={{
+              color,
+              fontFamily: fonts.medium,
+              fontSize: labelSize,
+              lineHeight: labelSize + 2,
+              textAlign: 'center',
+              width: '100%',
+              marginTop: 2,
+            }}
+          >
+            {children}
+          </Text>
+        ),
       }}
     >
       <Tabs.Screen

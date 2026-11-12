@@ -128,6 +128,8 @@ export function useHomeDashboard() {
     completeness,
     tone: completenessTone(completeness.score, completeness.blocking),
     hasVehicles,
+    hasOpeningOdometer,
+    hasActivity,
     hasRentalVehicles,
     hasOdometerVehicles,
     rentalTodayAmount: rentalToday.todayAmount,

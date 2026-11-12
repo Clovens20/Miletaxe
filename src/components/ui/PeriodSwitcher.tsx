@@ -44,7 +44,9 @@ export function PeriodSwitcher({
           >
             <Ionicons name="chevron-back" size={22} color={canGoPrev ? colors.text : colors.textMuted} />
           </Pressable>
-          <Text style={styles.navLabel}>{periodLabel}</Text>
+          <Text style={styles.navLabel} numberOfLines={2}>
+            {periodLabel}
+          </Text>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t('expenses.checkNext')}
