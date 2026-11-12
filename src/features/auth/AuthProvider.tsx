@@ -16,6 +16,8 @@ type AuthState = {
   session: Session | null;
   user: User | null;
   profile: Profile | null;
+  /** Vrai seulement quand le profil du compte connecté a été relu. */
+  profileReady: boolean;
   configured: boolean;
   preview: boolean;
   isStaff: boolean;
@@ -68,21 +70,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [passwordGateClearedFor, setPasswordGateClearedFor] = useState<string | null>(null);
 
   const loadProfile = async (userId: string) => {
     if (isLocalMode()) {
       const local = await loadLocal();
       setProfile(local.profile as Profile | null);
+      setProfileUserId(userId);
       if (local.profile?.preferred_locale === 'en' || local.profile?.preferred_locale === 'fr') {
         setAppLocale(local.profile.preferred_locale as SupportedLocale);
       }
       return;
     }
     const client = getSupabase();
-    const { data } = await client.from('profiles').select('*').eq('id', userId).maybeSingle();
-    let row = data as Profile | null;
-    if (!row && !profileInsertTried.has(userId)) {
+    let { data, error } = await client.from('profiles').select('*').eq('id', userId).maybeSingle();
+    if (!data && !error) {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      ({ data, error } = await client.from('profiles').select('*').eq('id', userId).maybeSingle());
+    }
+    let row = (error ? null : data) as Profile | null;
+    if (!row && !error && !profileInsertTried.has(userId)) {
       profileInsertTried.add(userId);
       const { data: created } = await client
         .from('profiles')
@@ -92,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       row = (created as Profile | null) ?? null;
     }
     setProfile(row);
+    setProfileUserId(userId);
     const locale = row?.preferred_locale;
     if (locale === 'en' || locale === 'fr') setAppLocale(locale);
   };
@@ -121,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         await loadProfile(data.session.user.id);
       }
-      const { data: listener } = client.auth.onAuthStateChange(async (event, nextSession) => {
+      const { data: listener } = client.auth.onAuthStateChange((event, nextSession) => {
         if (isLocalMode()) return;
         if (event === 'TOKEN_REFRESHED') {
           setSession(nextSession);
@@ -132,8 +141,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (hasLocalPasswordClear(nextSession.user.id)) {
             setPasswordGateClearedFor(nextSession.user.id);
           }
-          await loadProfile(nextSession.user.id);
-        } else setProfile(null);
+          void loadProfile(nextSession.user.id);
+        } else {
+          setProfile(null);
+          setProfileUserId(null);
+        }
       });
       unsubscribe = () => listener.subscription.unsubscribe();
       setIsLoading(false);
@@ -149,6 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       user: session?.user ?? null,
       profile,
+      profileReady: !session || profileUserId === session.user.id,
       configured: isSupabaseConfigured,
       preview: isUiPreview,
       isStaff: isStaffUser(session?.user),
@@ -166,6 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setPasswordGateClearedFor(userId);
             void syncMustChangePasswordFlag();
           }
+          await loadProfile(userId);
           setSession(data.session);
         }
       },
@@ -187,6 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (isSupabaseConfigured) await getSupabase().auth.signOut();
         setSession(null);
         setProfile(null);
+        setProfileUserId(null);
       },
       resetPassword: async (email) => {
         if (!isSupabaseConfigured) throw new Error('not_configured');
@@ -249,7 +264,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       },
     }),
-    [isLoading, session, profile, passwordGateClearedFor],
+    [isLoading, session, profile, profileUserId, passwordGateClearedFor],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

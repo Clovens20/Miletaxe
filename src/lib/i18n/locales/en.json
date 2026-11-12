@@ -692,6 +692,8 @@
   "settings": {
     "title": "Settings",
     "profile": "Profile",
+    "nameHint": "Name shown on the home screen and the accountant package. It is never taken from the email.",
+    "saveName": "Save name",
     "accountEmail": "Account email",
     "accountEmailMissing": "No email on this account",
     "language": "Language",

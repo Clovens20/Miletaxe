@@ -10,6 +10,7 @@ import { useBrandLogoSrc } from '@/features/reports/brandLogo';
 import { DocumentPreview } from '@/features/reports/DocumentPreview';
 import { accountantPackageHtml } from '@/features/reports/documentHtml';
 import { reportSummary, useAccountantPdfActions, useReports } from '@/features/reports/hooks';
+import { ReportPdfActions } from '@/features/reports/ReportPdfActions';
 import type { SupportedLocale } from '@/types/domain';
 import { colors, radius, space, type } from '@/theme';
 
@@ -65,9 +66,15 @@ export default function ReportPreviewScreen() {
       }
     >
       {summary && html ? (
-        <View style={styles.paper}>
-          <DocumentPreview html={html} />
-        </View>
+        <>
+          <ReportPdfActions
+            pdf={pdf}
+            onMissingAccountant={() => router.push('/(app)/settings/accountant' as Href)}
+          />
+          <View style={styles.paper}>
+            <DocumentPreview html={html} />
+          </View>
+        </>
       ) : (
         <Text style={styles.note}>{t('reports.missing')}</Text>
       )}

@@ -13,12 +13,12 @@ import '@/lib/i18n';
 void SplashScreen.preventAutoHideAsync();
 
 function Gate() {
-  const { isLoading, session, profile, configured, preview, isStaff, isAgent } = useAuth();
+  const { isLoading, session, profile, profileReady, configured, preview, isStaff, isAgent } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || !profileReady) return;
     const group = segments[0];
     const inLegal = group === 'legal';
     const inAuthReset = group === 'auth';
@@ -45,10 +45,10 @@ function Gate() {
       return;
     }
 
-    if (group !== '(app)' && group !== '(onboarding)' && !inLegal) {
+    if (group !== '(app)' && !inLegal) {
       router.replace('/(app)/(tabs)');
     }
-  }, [configured, isAgent, isLoading, isStaff, preview, profile?.onboarding_completed_at, router, segments, session]);
+  }, [configured, isAgent, isLoading, isStaff, preview, profile?.onboarding_completed_at, profileReady, router, segments, session]);
 
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>

@@ -21,6 +21,7 @@ import {
   monthlyBuckets,
 } from '@/features/reports/explain';
 import { reportSummary, useAccountantPdfActions, useReports } from '@/features/reports/hooks';
+import { ReportPdfActions } from '@/features/reports/ReportPdfActions';
 import { localize } from '@/lib/i18n/localize';
 import { formatDate, formatDistance, formatMoney, formatYearMonth } from '@/lib/format';
 import type { CurrencyCode, SupportedLocale } from '@/types/domain';
@@ -71,6 +72,10 @@ export default function ReportDetailScreen() {
             </Text>
             {summary.profile.full_name ? <Text style={styles.meta}>{summary.profile.full_name}</Text> : null}
           </Card>
+          <ReportPdfActions
+            pdf={pdf}
+            onMissingAccountant={() => router.push('/(app)/settings/accountant' as Href)}
+          />
 
           {derived.incomplete.length || derived.incompleteDays.length || summary.findings.length ? (
             <>

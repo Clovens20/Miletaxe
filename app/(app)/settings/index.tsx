@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, StyleSheet, Text } from 'react-native';
 import { type Href, useRouter } from 'expo-router';
 import Constants from 'expo-constants';
@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { ListRow } from '@/components/ui/ListRow';
 import { Screen } from '@/components/ui/Screen';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import { TextField } from '@/components/ui/TextField';
 import { buildAccountExport, shareAccountExport } from '@/features/account/exportData';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { PRODUCT } from '@/lib/constants';
@@ -22,7 +23,29 @@ export default function SettingsScreen() {
   const { user, profile, updateProfile, signOut } = useAuth();
   const locale = (i18n.language === 'en' ? 'en' : 'fr') as SupportedLocale;
   const [exporting, setExporting] = useState(false);
+  const [fullName, setFullName] = useState(profile?.full_name ?? '');
+  const [savingName, setSavingName] = useState(false);
   const version = Constants.expoConfig?.version ?? '1.0.0';
+
+  useEffect(() => {
+    setFullName(profile?.full_name ?? '');
+  }, [profile?.full_name]);
+
+  const saveName = async () => {
+    const next = fullName.trim();
+    if (next.length < 2) {
+      Alert.alert(t('common.error'), t('validation.required'));
+      return;
+    }
+    setSavingName(true);
+    try {
+      await updateProfile({ full_name: next });
+    } catch {
+      Alert.alert(t('common.error'));
+    } finally {
+      setSavingName(false);
+    }
+  };
 
   const exportData = async () => {
     if (!user) return;
@@ -40,7 +63,19 @@ export default function SettingsScreen() {
   return (
     <Screen title={t('settings.title')} scroll>
       <Card>
-        <ListRow title={t('settings.profile')} subtitle={profile?.full_name ?? undefined} />
+        <TextField
+          label={t('onboarding.fullName')}
+          hint={t('settings.nameHint')}
+          value={fullName}
+          onChangeText={setFullName}
+          autoCapitalize="words"
+        />
+        <Button
+          label={t('settings.saveName')}
+          loading={savingName}
+          disabled={fullName.trim() === (profile?.full_name ?? '').trim()}
+          onPress={() => void saveName()}
+        />
         <ListRow
           icon="mail-outline"
           title={t('settings.accountEmail')}

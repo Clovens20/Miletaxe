@@ -692,6 +692,8 @@
   "settings": {
     "title": "Paramètres",
     "profile": "Profil",
+    "nameHint": "Nom utilisé sur l’accueil et le dossier du comptable. Il n’est jamais déduit du courriel.",
+    "saveName": "Enregistrer le nom",
     "accountEmail": "Courriel du compte",
     "accountEmailMissing": "Aucun courriel associé",
     "language": "Langue",
