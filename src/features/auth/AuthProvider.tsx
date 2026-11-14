@@ -189,7 +189,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { data, error } = await getSupabase().auth.signUp({
           email,
           password,
-          options: { data: { preferred_locale: 'fr' } },
+          options: {
+            data: { preferred_locale: 'fr' },
+            emailRedirectTo: `${PRODUCT.siteOrigin}/auth/confirm`,
+          },
         });
         if (error) throw error;
         return { needsEmailConfirmation: !data.session };

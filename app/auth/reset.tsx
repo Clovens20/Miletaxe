@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
+import { openEmailLink } from '@/features/auth/emailLink';
 import { getSupabase, isSupabaseConfigured } from '@/lib/supabase/client';
 import { recoveryPasswordSchema, type RecoveryPasswordValues } from '@/lib/validation/schemas';
 import { colors, type } from '@/theme';
@@ -27,23 +28,29 @@ export default function AuthResetScreen() {
       setInvalid(true);
       return;
     }
-    const client = getSupabase();
-    const start = async () => {
-      if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        const code = new URLSearchParams(window.location.search).get('code');
-        if (code) {
-          const { error } = await client.auth.exchangeCodeForSession(code);
-          if (error) {
-            setInvalid(true);
-            return;
-          }
-        }
-      }
-      const { data } = await client.auth.getSession();
-      if (!data.session) setInvalid(true);
+    let settled = false;
+    const finish = (ok: boolean) => {
+      if (settled) return;
+      settled = true;
+      setInvalid(!ok);
       setReady(true);
     };
-    void start();
+    const client = getSupabase();
+    const { data: listener } = client.auth.onAuthStateChange((event, session) => {
+      if (session && (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
+        finish(true);
+      }
+    });
+    void openEmailLink().then(async (result) => {
+      if (result === 'invalid') finish(false);
+      else if (result === 'session') finish(true);
+      else {
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        const { data } = await client.auth.getSession();
+        finish(Boolean(data.session));
+      }
+    });
+    return () => listener.subscription.unsubscribe();
   }, []);
 
   const onSubmit = handleSubmit(async (values) => {

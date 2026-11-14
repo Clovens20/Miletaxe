@@ -12,6 +12,7 @@ import { Card } from '@/components/ui/Card';
 import { Screen } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
 import { useAdminMovements, useAdminStats } from '@/features/admin/hooks';
+import { PlayDownloadCard } from '@/features/admin/PlayDownloadCard';
 import { isStaffUser } from '@/features/admin/staff';
 import type { AdminMovementRow } from '@/features/admin/types';
 import { useAuth } from '@/features/auth/AuthProvider';
@@ -132,6 +133,7 @@ function AdminDashboard() {
     <Screen title={t('admin.dashboard')} subtitle={t('admin.statsHint')} scroll home={false} back={false}>
       {stats.isError ? <Text style={styles.error}>{t('admin.loadFailed')}</Text> : null}
       <Text style={styles.live}>{t('admin.liveRefresh')}</Text>
+      <PlayDownloadCard />
 
       <View style={styles.actions}>
         <Button

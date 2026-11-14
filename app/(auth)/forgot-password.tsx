@@ -18,16 +18,19 @@ export default function ForgotPasswordScreen() {
   const { resetPassword } = useAuth();
   const router = useRouter();
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { control, handleSubmit, formState } = useForm<ForgotPasswordValues>({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: { email: '' },
   });
 
   const onSubmit = handleSubmit(async (values) => {
+    setError(null);
     try {
       await resetPassword(values.email);
-    } finally {
       setSent(true);
+    } catch {
+      setError(t('auth.resetFailed'));
     }
   });
 
@@ -49,6 +52,7 @@ export default function ForgotPasswordScreen() {
         )}
       />
       {sent ? <Text style={styles.ok}>{t('auth.resetSent')}</Text> : null}
+      {error ? <Text style={styles.error}>{error}</Text> : null}
       <Button label={t('auth.sendReset')} loading={formState.isSubmitting} onPress={onSubmit} />
       <Button label={t('common.back')} variant="ghost" onPress={() => router.back()} />
     </Screen>
@@ -59,5 +63,9 @@ const styles = StyleSheet.create({
   ok: {
     ...type.body,
     color: colors.success,
+  },
+  error: {
+    ...type.body,
+    color: colors.danger,
   },
 });
